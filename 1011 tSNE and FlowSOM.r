@@ -1,7 +1,12 @@
-#################### Script 1011 tSNE & FlowSOM for Rstudio ####################
-################################################################################
+##################### Script 1011 tSNE & FlowSOM for Rstudio #####################
+##################################################################################
 
-#loading packages
+# Use Rplugin in kaluza to transform analysis file to FCS
+# Use this FCS file as input for the script
+
+
+##################################################################################
+# Loading packages
 library("Rtsne")
 library("GEOmap")
 library("pca3d")
@@ -11,8 +16,19 @@ library(flowCore)
 library(FlowSOM)
 library(umap)
 
+
 ##################################################################################
-#    Enter here the column index/numbering to be used for tsne and FlowSOM calculation        #
+# Read FCS file
+fcsfile <- "D:/school/Stage officieel/Files/Output_plugin/20191203-113053-Carolien-all linear.fcs"
+ff <- flowCore::read.FCS(fcsfile) # ff = FlowFrame, nrows = events, ncol = parameters
+# class of ff = FlowFrame, type = s4 --> for plots should be numeric
+# use exprs() to make matrix
+ffmatrix <- exprs(ff) # class = matrix, type = double
+
+##################################################################################
+# Predefined settings
+##################################################################################
+# Enter here the column index/numbering to be used for tsne and FlowSOM calculation
 tsne.parameter <- c(6:11, 13:14)
 tsne.perplexity <- 30 # default =30
 tsne.theta <- 0.1 # 0 for exact t-sne, default = 0.5
@@ -34,53 +50,36 @@ umap.custom.settings <- umap.defaults
 umap.custom.settings$n_neighbors <- 15 #15
 umap.custom.settings$n_nepochs <- 2000 #200
 
-##################################################################################
 
 ##################################################################################
-#    Enter here the ADC resolution from your flow cytometer 
+# Enter here the ADC resolution from your flow cytometer 
 # ie: BD Diva= 18, BCI Navios=20, BCI CytoFLex=24, BCI MoFLo XDP and Astrios=32, BCI CyAn=16, 
 #<N> parameter=10, parameters coming from Kaluza logicle Matrix =10 
 ADC.resolution <- 10
-linear <- logicle *1024
+# Removed scaling to linear --> already done by extraction with plugin
+
+
 ###################################################################################
+# Enter here the path of the output folder             
+output.folder <- "D:/school/Stage officieel/Files/Output_plugin/"
+dir.create(path=output.folder)
+# Enter here the ouput fcs file name             
+output.fcs.file.name <- "Carolien.fcs"
+
 
 ##################################################################################
 # Enter here the number of cells to be used for computation : downsampling
 nb.cells.to.be.taken <- 100000000  #max 100 000 cells in R 32 bit
-##################################################################################
-
-###################################################################################
-#          Enter here the path of the output folder             
-output.folder <- "C:/Users/analis/Documents/Test BCI scripts/OUTPUT/"
-
-dir.create(path=output.folder)
-###################################################################################
-
-###################################################################################
-#          Enter here the ouput fcs file name             
-output.fcs.file.name <- "Daniele.fcs"
-###################################################################################
-
-###################################################################################
-#                                              Cytobank settings
-#Enter here you Cytobank User name and password
-your.Cytobank.user.name <- ""
-your.Cytobank.password <- ""
-
-#Enter here the Experiment name and the Experiment purpose name
-Cytobank.experiment.name <-  "My Test Experiment umap fft-sne FlowSOM"
-CytoBank.purpose <-  "Testing out R Uploading on Premium"
-###################################################################################
-
 
 
 ###################################################################################
-#				Script start here                                                                 #
+# Script start here                                                                 #
 ###################################################################################
 
-#Downsampling
-if(nb.cells.to.be.taken < nrow(linear)) {
-                                  linear_indices <- sample(nrow(linear), nb.cells.to.be.taken)
+###################################################################################
+# Downsampling
+if(nb.cells.to.be.taken < nrow(ff)) {
+                                  indices <- sample(nrow(linear), nb.cells.to.be.taken)
                                   table.to.be.computed <- linear[linear_indices,]
 		        table.to.be.used.as.fcs.file <- linear[linear_indices,]
 }else{
