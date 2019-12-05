@@ -5,12 +5,12 @@
 # analysis file created with version Kaluza 1.3 or Kaluza 1.5
 ###############################################################################################
 
+### Clear Rstudio windows ###
+rm(list=ls()) # removes all object from Rstudio environment window
+cat("\014") # clears Rstudio console window
+if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 
-rm(list=ls())
-cat("\014")
-if(!is.null(dev.list())) dev.off()
-
-
+### Load packages ###
 library(XML)
 library(methods)
 library(flowCore)
@@ -18,148 +18,130 @@ library(xml2)
 library(purrr)
 library(rvest)
 
-
-#create an output folder where all new fcs files will be sent
-
+### create output folder for all newly created fcs files ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S-")
 output.folder <- "C:/Users/carol/OneDrive/Documenten/school/Stage officieel/Extraction_output/"
 dir.create(path = output.folder)
 
-
-#C:\Users\BEDUPONT\Documents\Demo Kaluza 1.2\304-NL\analysis files
-# rename .analysis  in .zip
+### assign input folder with .analysis files, zip files ###
 input.folder <- "C:/Users/carol/OneDrive/Documenten/school/Stage officieel/Extraction_input/"
-
-
-
-#*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-
-
-
+# list the . analysis files in the inputfolder 
 fcs.path <- list.files(path= input.folder, pattern = "\\.analysis$", full.names=TRUE)
-
-nb.files <- length(fcs.path)
-
-fcs.path.new <- list()
+nb.files <- length(fcs.path) # how many .analysis files are in the input folder?
+fcs.path.new <- list() # create empty list
+# iterate over the numbers: e.g. nb.files=3: iterate over 1:3: iterate over 3 numbers 1, 2 and 3
+# gsub(pattern, replacement, x) replace analysis with zip for every file and rename all files
 for (i in 1:nb.files){
   old.file <- fcs.path[[i]]
   new.file <- gsub("analysis","zip", old.file)
   file.rename(from = old.file, to = new.file)
-  
 }
-#@END rename analysis file in zip
 
-
-###############################################################################################
-#loop to extract the fcs 3.0 and xml slot
-#  + create the fcs file
-###############################################################################################
-
+# list the .zip files in input folder
 zip.path <- list.files(path= input.folder, pattern = "\\.zip$", full.names=TRUE)
-
-zip.path.name <- basename(zip.path)
-zip.path.name.1 <- substr(zip.path.name,start=1,stop = nchar(zip.path.name)-4)
-
-nb.files.zip <- length(zip.path)
+zip.path.name <- basename(zip.path) # remove all of the path, only keep filename
+zip.path.name.1 <- substr(zip.path.name,start=1,stop = nchar(zip.path.name)-4) # cut off .zip from name
+nb.files.zip <- length(zip.path) # number of files in the input folder
 
 
-###############################################################################################
+###########################
+### Loop to extract fcs ###
+###########################
 
+# iterate over the number of files, this for loop runs almost untill the end
 for (a in 1:nb.files.zip){
-  
-  file.name.zip.1 <- substr(zip.path[[a]], start = 1, stop = nchar(zip.path[[a]])-4)
+  file.name.zip.1 <- substr(zip.path[[a]], start = 1, stop = nchar(zip.path[[a]])-4) # cut off .zip at the end
   file.name.zip <- file.name.zip.1
-  dir.create(path = file.name.zip)
-  unzip(zip.path[[a]], exdir = file.name.zip)
+  dir.create(path = file.name.zip) # create a directory with filename
+  unzip(zip.path[[a]], exdir = file.name.zip) # unzip the file and extract in folder with same name without zip
+  # the unzipped folder contains 3 files: fcs, xml and app file
   
-  #Extract the xml solt to get the compensation matrix
+  ### Extract the xml slot to get the compensation matrix: is this necessary, since we compensate in kaluza?
+  # list all xml files in folder
   file.name.xml <- list.files(path = file.name.zip, pattern = "\\.xml$", full.names = TRUE)
-  
+  # read the xml file
   doc <- read_xml(file.name.xml)
+
+  ### ???????????????????????????????????????????????????????????????????????? for second method of getting comp matrix?
   result <- xmlParse(file = file.name.xml, useInternalNodes = FALSE, 
                                 ignoreBlanks=FALSE,
                                 replaceEntities = TRUE,
                                 asTree = TRUE,
                                 isSchema = FALSE)
-  
-  ######
   doc.berlin <- xmlInternalTreeParse(file.name.xml)
   poc <-xmlRoot(doc.berlin)
   p <- poc[[1]]
   PanelList <- xmlApply(p[[1]], function(x) xmlGetAttr(x[["DataSet"]], "N"))
-  ######
   
   
-  
-  #count the number of fcs files in the zip file
+  ### count the number of fcs files in the zip file
   files.name.fcs <- list.files(path= file.name.zip, pattern = "\\.fcs$", full.names=TRUE)
-  
   nb.files.fcs.zip <- length(files.name.fcs)
-  
+  # make an empty list for the metadata
   meta <- list()
-  
+  # iterate over every number
   for (aa in 1:nb.files.fcs.zip){
-  
-  fcs.test <- read.FCS(files.name.fcs[[aa]],dataset=1)
-  
+  fcs.test <- read.FCS(files.name.fcs[[aa]],dataset=1) # reads all events ungated
   
   #@START comp matrix extraction for any instrument
   #detector name extraction with xml2 package
-  doc.1 <- xml_find_all(doc, ".//Compensation/CompensatedDetectors" )
+  doc.1 <- xml_find_all(doc, ".//Compensation/CompensatedDetectors" ) #find all names of detectors in xml file
   doc.2 <- xml_find_all(doc.1[aa], ".//D" )
-  doc.3 <- html_text(doc.2) #comp.matrix.parameter.name
-  nb.parameter.comp.matrix <- length(doc.3)
+  doc.3 <- html_text(doc.2) #comp.matrix.parameter.name, output if you print doc3:
+  # [1] "FL1"  "FL2"  "FL3"  "FL4"  "FL5"  "FL6"  "FL7"  "FL8"  "FL9"  "FL10"
+  nb.parameter.comp.matrix <- length(doc.3) # =10
+  number.coef <- (nb.parameter.comp.matrix^2) - nb.parameter.comp.matrix # 10Â² - 10 = 90
   
-  number.coef <- (nb.parameter.comp.matrix^2) - nb.parameter.comp.matrix
-  
-  #compensation matrix extraction with xml2 package
-  
+  # compensation matrix extraction with xml2 package
   doc.10 <- xml_find_all(doc, ".//Compensation/S" )
   doc.11 <- xml_find_all(doc.10[aa], ".//SV" )
   doc.13 <- html_attrs(doc.11)
-  SV.table <- do.call(rbind, doc.13)
-  SV.table.1 <- SV.table
+  SV.table <- do.call(rbind, doc.13) # merge datasets vertically by row
+  SV.table.1 <- SV.table 
   
-  SV.table.1.row <- SV.table.1[,1]
+  # matrix is made
+  SV.table.1.row <- SV.table.1[,1] # list of values in first column
   indices.matrix.row <- match(SV.table.1.row, doc.3)
-  #is.na(indices.matrix.row) <- 0
+  #is.na(indices.matrix.row) <- 0 (all values that ar NA are replaced by 0)
   
-  SV.table.1.col <- SV.table.1[,2]
+  SV.table.1.col <- SV.table.1[,2] # output is list
   indices.matrix.col <- match(SV.table.1.col, doc.3)
   #is.NA.indices.matrix.col <- is.na(indices.matrix.col)
   
   #indices.numeric.coef <- !is.na(indices.matrix.row) & !is.na(indices.matrix.col)
-  numeric.coef <- as.numeric(SV.table.1[,3])
+  numeric.coef <- as.numeric(SV.table.1[,3]) # output is list with numeric values
+  ## step missing for commented commands? assignment indices.numeric.coef
   #numeric.1 <- numeric.coef[indices.numeric.coef]
-  
   #SV.table.3 <- cbind(indices.matrix.row[indices.numeric.coef],
   #                    indices.matrix.col[indices.numeric.coef], 
   #                    numeric.1)
   
+  # bind the 3 lists by column
   SV.table.3 <- cbind(indices.matrix.row,
                       indices.matrix.col, 
                       numeric.coef)
   
   
-  #Building the comp matrix
-  #build a A x A zero diag matrix
+  # Building the comp matrix
+  # build a A x A zero diag matrix
   comp.matrix <- diag(x=1, nrow= nb.parameter.comp.matrix, ncol = nb.parameter.comp.matrix)
-  
-  #matrix Kaluza format
+  # the values of the diagonal in the matrix are all 1
+
+  # transform matrix to Kaluza format
   for (z in 1: nrow(SV.table.3)){
     row <- SV.table.3[z,1]
     column <- SV.table.3[z,2]
     comp.matrix[row, column] <- SV.table.3[z,3]
   }
-  
-  #matrix R + fcs file format
+  # if you look in kaluza, values in spillover matrix are *100
+
+  # matrix R + fcs file format
   matrix.coef <- comp.matrix.fcs <- t(comp.matrix)
   
   comp.matrix.parameter.name <- doc.3
   
-  
-  ###Method 2 - comp matrix extraction
+  # Other methodMethod 2 - comp matrix extraction
   comp.berlin <- getNodeSet(p[[1]][[aa]], "Protocol/Compensation", addFinalizer=TRUE)
   comp.berlin.1 <- getNodeSet(p[[1]][[aa]], "Protocol/Compensation/S/SV", addFinalizer=TRUE)
   
@@ -167,9 +149,9 @@ for (a in 1:nb.files.zip){
 ###############################################################################################
 #                                      Berlin                                                 #
 ###############################################################################################  
-  
-    #Extration of the main gate : must be on linear parameter FSC vs SSC by example.
-  #@STRART the good one !!!
+  # Extration of the main gate : must be on linear parameter FSC vs SSC by example.
+  #@START the good one !!!
+  # getNodeSet = Find Matching Nodes In An Internal XML Tree
   gates.berlin <- getNodeSet(p[[1]][[aa]], "Protocol/Gates", addFinalizer=TRUE)
   
   # M="FL1 INT" : parameter; S="C" is Logicle;  S="O" is Log; S="I" is Linear      i<-1
@@ -582,10 +564,10 @@ for (a in 1:nb.files.zip){
   #csv.File2be.Converted <- fcs@exprs
   csv.File2be.Converted <- fcs.comp@exprs
   
-  #FC500 fc3.0 tous les paramètres sont cochés alors que dans 
-  #le fc2 seuls les paramètres d'intérêt sont présents
-  #On retire donc les paramètres du fc3.0 qui ne sont pas présents dans le slot fc2
-  #On renome les noms et descriptions des paramètres. 
+  #FC500 fc3.0 tous les paramï¿½tres sont cochï¿½s alors que dans 
+  #le fc2 seuls les paramï¿½tres d'intï¿½rï¿½t sont prï¿½sents
+  #On retire donc les paramï¿½tres du fc3.0 qui ne sont pas prï¿½sents dans le slot fc2
+  #On renome les noms et descriptions des paramï¿½tres. 
   
   target.parameter.name.not.NA <- !is.na(fcs.description.name)
   csv.File2be.Converted <- csv.File2be.Converted [,target.parameter.name.not.NA]
@@ -1008,7 +990,7 @@ for (a in 1:nb.files.zip){
       FLA.descr <- paste(name.FL.H.A, collapse=",")
       name.FLA <- FLA.descr
       
-      matrix.coef.1 <- comp.matrix.fcs <- (comp.matrix) #####ne pas prendre la transposée
+      matrix.coef.1 <- comp.matrix.fcs <- (comp.matrix) #####ne pas prendre la transposï¿½e
       
       nb.column <- ncol(comp.matrix)
       nb.FLA <- NCOL(comp.matrix) *2
@@ -1032,7 +1014,7 @@ for (a in 1:nb.files.zip){
           FLA.descr <- paste(name.FL.H.A, collapse=",")
           name.FLA <- FLA.descr
           
-          matrix.coef.1 <- comp.matrix.fcs <- t(comp.matrix) #####ne pas prendre la transposée
+          matrix.coef.1 <- comp.matrix.fcs <- t(comp.matrix) #####ne pas prendre la transposï¿½e
           
           nb.column <- ncol(comp.matrix)
           nb.FLA <- NCOL(comp.matrix)
@@ -1056,7 +1038,7 @@ for (a in 1:nb.files.zip){
             FLA.descr <- paste(name.FL.H.A, collapse=",")
             name.FLA <- FLA.descr
             
-            matrix.coef.1 <- comp.matrix.fcs <- t(comp.matrix) #####ne pas prendre la transposée
+            matrix.coef.1 <- comp.matrix.fcs <- t(comp.matrix) #####ne pas prendre la transposï¿½e
             
             nb.column <- ncol(comp.matrix)
             nb.FLA <- NCOL(comp.matrix)
@@ -1080,7 +1062,7 @@ for (a in 1:nb.files.zip){
       
       
       # Set the compensation matrix to a R/Diva/fcs3.1 format #
-      matrix.coef2.vector <- c((comp.matrix.5)) #####ne pas prendre la transposée
+      matrix.coef2.vector <- c((comp.matrix.5)) #####ne pas prendre la transposï¿½e
       matrix.coef <- paste(matrix.coef2.vector, collapse = ",")
 
       #based on the table region.table apply the gating stategy
