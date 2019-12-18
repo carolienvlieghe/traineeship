@@ -583,39 +583,43 @@ for (a in 1:nb.files.zip){
   #############################################################################################
   # Set the compensation matrix to a R/Diva/fcs3.1 format #
   #############################################################################################
+  # add compensation matrix 
   fcs@description$'$SPILLOVER'<- matrix.coef
   #############################################################################################
   
   nb.FLA <- nrow(matrix.coef)
   #name.FLA <- paste("FL", 1:10, "-A",sep="")
   
+  # grep for the fluochromes
   tempo.Navios.comp <- grep("^FL[0-9]",fcs.description.name)
   if(length (tempo.Navios.comp) != 0) {
   name.FLA.1 <- grep("^FL[0-9]",fcs.description.name)
-  name.FLA <- fcs.description.name[tempo.Navios.comp]
+  name.FLA <- fcs.description.name[tempo.Navios.comp] # all fluorochromes
   } else {
     name.FLA <- comp.matrix.parameter.name
   }
     
   FLA.descr <- name.FLA[1]
   for (z in 2:length(name.FLA)) {
-    FLA.descr <- paste(FLA.descr,name.FLA[z],sep = ",")
+    FLA.descr <- paste(FLA.descr,name.FLA[z],sep = ",") # puts all FL x INT in a vector (comma seperated)
   }
   
 
-  matrix.coef2.vector<-c(t(matrix.coef))
+  matrix.coef2.vector<-c(t(matrix.coef)) # t(x): Given a matrix or data.frame x, t returns the transpose of x
   matrix.coef<-matrix.coef2.vector[1]
   for (z in 2:length(matrix.coef2.vector)) {
-    matrix.coef <- paste(matrix.coef,matrix.coef2.vector[z],sep = ",")
+    matrix.coef <- paste(matrix.coef,matrix.coef2.vector[z],sep = ",") # vector of all matrixcoefficients
   }
   
-  
+  # Loss of total cells happens somewhere before the next step
+
   #############################################################################################
   # START building the fcs file with new parameters #
   #############################################################################################
   
   #calculate number of events and number of parameters
   
+  # where do you get this information?
   cytometer.name <- "Navios BeD"
   adc.resolution.Area <- 20
   adc.resolution.Height <- 18
@@ -816,7 +820,7 @@ for (a in 1:nb.files.zip){
       if (sum(as.numeric(region.table[,3])) ==0) {sFilename.gating.strategy <- "ungated"}
       
       #*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-      
+########################## This last part of the script is for other platforms (other cytometers) ##################################     
     cytometer.name <- "Gallios (Kaluza) BeD"
     adc.resolution.Area <- 20
     adc.resolution.Height <- 18
@@ -1220,7 +1224,9 @@ for (a in 1:nb.files.zip){
       
       
     }
-####################### END CytoFLEX ################    
+####################### END CytoFLEX ################ 
+###############################################################################################################################
+  
     else{
     print("This instrument is not supported yet - contact your Beckman Coulter representative")
             break
