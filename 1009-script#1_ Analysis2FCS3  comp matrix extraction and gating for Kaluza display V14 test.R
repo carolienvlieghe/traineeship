@@ -288,6 +288,7 @@ for (a in 1:nb.files.zip){
 #####################################################
   
   #Extraction of region name and region matrix from all Rectangular and Polygonal region
+  # extract N from every first childnode of <gates>
   region.name <- xmlSApply(gates.berlin[[1]], xmlGetAttr, "N")
   
   region.name.index.R.P <- which(names(region.name) != "B")
@@ -295,11 +296,13 @@ for (a in 1:nb.files.zip){
   region.name.R.P <- region.name[region.name.index.R.P]
   region.matrix.R.P <- gate.mat[region.name.index.R.P]
   
-  tempo.table <- rep(0,length(region.name.R.P))
+  tempo.table <- rep(0,length(region.name.R.P)) # replicates 0
+  # name() outputs "R" or "P", unnname() outputs gate name e.g. "LY + 45Dim", tempo.table are all zeros (where you select gate)
   region.table <- cbind(names(region.name.R.P), unname(region.name.R.P), as.numeric(tempo.table))
-  colnames(region.table) <- c("Region type","Regions", "Selection 0 or 1")
+  colnames(region.table) <- c("Gate type","Gate name", "Selection 0 or 1")
   
-  #this code to be able to copy the gating strategu to all fcs files from the analasis 
+  # this code to be able to copy the gating strategu to all fcs files from the analasis 
+  # the gating strategy is saved in an RDS file this is a R data format
   if(aa==1) {region.table <- edit(region.table, title= "Enter here your gating strategy") ####!!!!!!!!!!!
              region.table.file <- paste(output.folder, "region.table.rds", sep="")
              saveRDS(region.table, file= paste(output.folder, "region.table.rds", sep=""))}
@@ -311,6 +314,7 @@ for (a in 1:nb.files.zip){
   
   warning("!! Only use Rectangle, Polygone or Histogram regions to define your populations in Kaluza !! ")
   warning("!! Do not draw any region in Radar Plot - it will crash the script !!")
+  
   #colnames of each region.matrix.R.P have to be rename with the FCS3.0 parameter name !
   
 ###############################################################################################  
@@ -331,12 +335,17 @@ for (a in 1:nb.files.zip){
   
   
   #@START script for Gallios : Navios / FC500
+  # Given a set of logical vectors, is at least one of the values true?
   if (any(tempo.Navios) == TRUE){
     
     #Open the fcs3.0 slot and save the fcs with it's new comp matrix
+    #if transformation= is not specified: default: Valid values are linearize (default)
   fcs <- read.FCS(files.name.fcs[[aa]],dataset=2) #open slot fcs3.0
   fcs2 <- read.FCS(files.name.fcs[[aa]],dataset=1) #open slot fcs2.0
-  
+  # for HG 11 if I look at ALL events: 151013 for original, after this step 150809 for fcs, for fcs2 it is same as original
+  # look at it with dim(fcs) dim(fcs2)
+  # ok for both if no gate is set
+  # why is first one set to dataset=2 and second oen to dataset=1? difference in events has something to do with this
   
   #########
   fcs.parameters.data.new.name <- c()
@@ -352,7 +361,7 @@ for (a in 1:nb.files.zip){
   #rename parameter name as <parameter name>-parameter description because write.FCS writes only the parameter name !
   for (k in 1:(np)){
     for (l in 1:np2){
-      
+      # ours is Navios, so it will perform the else statement
       if(fcs2@description$`$CYT` == "Cytomics FC 500") {
         name.fcs3 <- substr(fcs@parameters@data$name[k],start=1,stop = nchar(fcs@parameters@data$name[k])-0)
         name.fcs2 <-substr(fcs2@parameters@data$name[l],start=1,stop = nchar(fcs2@parameters@data$name[l])-4)
@@ -428,7 +437,7 @@ for (a in 1:nb.files.zip){
   
   fcs.description.name <- unname(fcs.parameters.data.new.name)
   fcs.description.desc <- unname(fcs@parameters@data$desc)
-  
+  # ??? don't see the difference after unname
   
   #############################################################################################
   #Compensate the fcs file with the new matrix
@@ -437,14 +446,16 @@ for (a in 1:nb.files.zip){
   tempo2.comp <- which(old.fcs.parameter.name%in%comp.matrix.parameter.name)
   comp.matrix.fcs.name <- old.fcs.parameter.name[tempo2.comp]
   }
+  # changes e.g. FL1 into FL1-A
   else{
   comp.matrix.fcs.name <- paste(comp.matrix.parameter.name, "-A",sep="")  
   }
   colnames(comp.matrix.fcs) <- comp.matrix.fcs.name
+  # first argument is the file to compensate, second it the matrix, fcs3 file is taken
   fcs.comp <- compensate(fcs, comp.matrix.fcs)
   
   
-  
+  # Why is this not necessary? Because while reading FCS data was linearized?
   #############################################################################################
   #create biexponentiel ff to be able to gate on
   #target.column <- c(5:14) #
@@ -509,11 +520,11 @@ for (a in 1:nb.files.zip){
   
   #If no gating fcs == fcs
   if (sum(as.numeric(region.table[,3])) !=0){
-    indices.region <- which(region.table[,3]=="1")
+    indices.region <- which(region.table[,3]=="1") # stores index number of chosen gate
     sFilename.gating.strategy <- paste(region.name.R.P[indices.region], collapse = "_")
     
     for (loop.region in indices.region){
-      gate.matrix <- as.matrix(region.matrix.R.P[[loop.region]])
+      gate.matrix <- as.matrix(region.matrix.R.P[[loop.region]]) # store the gate-values of chosen gate in new matrix
       
       if(region.table[loop.region,1] == "R"){
         #transform rectangular gate.matrix into a polygon 
@@ -525,9 +536,11 @@ for (a in 1:nb.files.zip){
         #R.gate <- polygonGate(filterId = " ", gate.matrix.R)
         #fcs <- Subset(fcs, R.gate)
         
-        x.R.indice <- match(colnames(gate.matrix)[1],old.fcs.parameter.name)
-        y.R.indice <- match(colnames(gate.matrix)[2],old.fcs.parameter.name)
+        x.R.indice <- match(colnames(gate.matrix)[1],old.fcs.parameter.name) # FS-A (for example on singulets1)
+        y.R.indice <- match(colnames(gate.matrix)[2],old.fcs.parameter.name) # FS-H
         
+        # fcs.comp@expr[,x.R.indice] = all values for FS-A
+        # gate.matrix[1,1] and [2,1] first and second value for FS-A
         x.R <- (fcs.comp@exprs[,x.R.indice] > gate.matrix[1,1])  & (fcs.comp@exprs[,x.R.indice] < gate.matrix[2,1])
         y.R <- (fcs.comp@exprs[,y.R.indice] > gate.matrix[1,2])  & (fcs.comp@exprs[,y.R.indice] < gate.matrix[2,2])
         
@@ -542,7 +555,8 @@ for (a in 1:nb.files.zip){
           #fcs <- Subset(fcs.comp, P.gate)
             x.P.indice <- match(colnames(gate.matrix)[1],old.fcs.parameter.name)
             y.P.indice <- match(colnames(gate.matrix)[2],old.fcs.parameter.name)
-            
+            # get all point in polygonGate
+            # 3th and 4th argument are arrays of x- and y-coordinates of the polygon
             P.gate <- sp::point.in.polygon (point.x = fcs.comp@exprs[,x.P.indice], 
                                             point.y = fcs.comp@exprs[,y.P.indice],
                                             pol.x = gate.matrix[,1], 
@@ -552,6 +566,7 @@ for (a in 1:nb.files.zip){
             fcs <- fcs [P.gate==1]
             fcs.comp <- fcs.comp [P.gate==1]
           }else{
+            # for histograms, probably not used here
             if(region.table[loop.region,1] == "L"){  
               x.L.indice <- match(colnames(gate.matrix)[1],old.fcs.parameter.name) 
               x.L <- (fcs.comp@exprs[,x.L.indice] > gate.matrix[1,1])  & (fcs.comp@exprs[,x.L.indice] < gate.matrix[2,1])
