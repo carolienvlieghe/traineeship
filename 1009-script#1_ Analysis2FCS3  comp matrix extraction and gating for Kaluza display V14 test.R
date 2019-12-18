@@ -21,11 +21,11 @@ library(rvest)
 ### create output folder for all newly created fcs files ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S-")
-output.folder <- "C:/Users/carol/OneDrive/Documenten/school/Stage officieel/Extraction_output/"
+output.folder <- "D:/school/Stage officieel/Extraction_output/"
 dir.create(path = output.folder)
 
 ### assign input folder with .analysis files, zip files ###
-input.folder <- "C:/Users/carol/OneDrive/Documenten/school/Stage officieel/Extraction_input/"
+input.folder <- "D:/school/Stage officieel/Extraction_input/"
 # list the . analysis files in the inputfolder 
 fcs.path <- list.files(path= input.folder, pattern = "\\.analysis$", full.names=TRUE)
 nb.files <- length(fcs.path) # how many .analysis files are in the input folder?
@@ -61,7 +61,7 @@ for (a in 1:nb.files.zip){
   # list all xml files in folder
   file.name.xml <- list.files(path = file.name.zip, pattern = "\\.xml$", full.names = TRUE)
   # read the xml file
-  doc <- read_xml(file.name.xml)
+  doc <- read_xml(file.name.xml) #typeof=list, class=xml_document, xml_node
 
   ### ???????????????????????????????????????????????????????????????????????? for second method of getting comp matrix?
   result <- xmlParse(file = file.name.xml, useInternalNodes = FALSE, 
@@ -69,10 +69,16 @@ for (a in 1:nb.files.zip){
                                 replaceEntities = TRUE,
                                 asTree = TRUE,
                                 isSchema = FALSE)
-  doc.berlin <- xmlInternalTreeParse(file.name.xml)
-  poc <-xmlRoot(doc.berlin)
-  p <- poc[[1]]
-  PanelList <- xmlApply(p[[1]], function(x) xmlGetAttr(x[["DataSet"]], "N"))
+  # result: typeof=list, class=XMLDocument, XMLAbstractDocument
+  # error when viewing result: Error in x$children[[...]] : subscript out of bounds
+  # xmlparse creates R structure representing the XML/HTML tree: https://www.rdocumentation.org/packages/XML/versions/3.98-1.20/topics/xmlTreeParse
+  doc.berlin <- xmlInternalTreeParse(file.name.xml) # Read XML tree into memory
+  poc <-xmlRoot(doc.berlin) #if you print poc, you see the whole xml tree structure
+  p <- poc[[1]] #tree poc: <analysis></analysis>, p: <wprklist></worklist>
+  #  xmlApply operate on the sub-nodes of the XML node, and not on the fields of the node object itself
+  # p[[1]] looks at <entries>, perform fuction on x=p[[1]]
+  # xmlGetATtr retrieves the value of a named attribute in an XML node (node dataset, N=...)
+  PanelList <- xmlApply(p[[1]], function(x) xmlGetAttr(x[["DataSet"]], "N")) 
   
   
   ### count the number of fcs files in the zip file
@@ -87,26 +93,32 @@ for (a in 1:nb.files.zip){
   #@START comp matrix extraction for any instrument
   #detector name extraction with xml2 package
   doc.1 <- xml_find_all(doc, ".//Compensation/CompensatedDetectors" ) #find all names of detectors in xml file
+  # doc.1 holds only the names of the detectors: 1 nodeset
   doc.2 <- xml_find_all(doc.1[aa], ".//D" )
+  # doc.2 idem but 10 nodesets (1 for every detector)
   doc.3 <- html_text(doc.2) #comp.matrix.parameter.name, output if you print doc3:
   # [1] "FL1"  "FL2"  "FL3"  "FL4"  "FL5"  "FL6"  "FL7"  "FL8"  "FL9"  "FL10"
+  # converts doc.2 to type and class 'character'
   nb.parameter.comp.matrix <- length(doc.3) # =10
-  number.coef <- (nb.parameter.comp.matrix^2) - nb.parameter.comp.matrix # 10² - 10 = 90
+  number.coef <- (nb.parameter.comp.matrix^2) - nb.parameter.comp.matrix # 10² - 10 = 90 --> for dimensions matrix?
   
   # compensation matrix extraction with xml2 package
-  doc.10 <- xml_find_all(doc, ".//Compensation/S" )
-  doc.11 <- xml_find_all(doc.10[aa], ".//SV" )
-  doc.13 <- html_attrs(doc.11)
-  SV.table <- do.call(rbind, doc.13) # merge datasets vertically by row
+  doc.10 <- xml_find_all(doc, ".//Compensation/S" ) #The node <compensation><S> holds values of comp-matrix
+  doc.11 <- xml_find_all(doc.10[aa], ".//SV" ) # Instead of one node S: separate nodes SV with values 
+  doc.13 <- html_attrs(doc.11) # one node contains 3 attr.
+  SV.table <- do.call(rbind, doc.13) # merge datasets vertically by row, class of SV.table = matrix
   SV.table.1 <- SV.table 
   
   # matrix is made
+  # assign the rows of the matrix
   SV.table.1.row <- SV.table.1[,1] # list of values in first column
-  indices.matrix.row <- match(SV.table.1.row, doc.3)
+  # match() returns a vector of the positions of (first) matches of its first argument in its second.
+  indices.matrix.row <- match(SV.table.1.row, doc.3) # match the list with detectornames from doc.3
   #is.na(indices.matrix.row) <- 0 (all values that ar NA are replaced by 0)
   
+  # assign the columns of the matrix
   SV.table.1.col <- SV.table.1[,2] # output is list
-  indices.matrix.col <- match(SV.table.1.col, doc.3)
+  indices.matrix.col <- match(SV.table.1.col, doc.3) # idem above
   #is.NA.indices.matrix.col <- is.na(indices.matrix.col)
   
   #indices.numeric.coef <- !is.na(indices.matrix.row) & !is.na(indices.matrix.col)
@@ -125,23 +137,26 @@ for (a in 1:nb.files.zip){
   
   # Building the comp matrix
   # build a A x A zero diag matrix
+  # diag(): Extract or replace the diagonal of a matrix, or construct a diagonal matrix.
   comp.matrix <- diag(x=1, nrow= nb.parameter.comp.matrix, ncol = nb.parameter.comp.matrix)
   # the values of the diagonal in the matrix are all 1
 
   # transform matrix to Kaluza format
   for (z in 1: nrow(SV.table.3)){
-    row <- SV.table.3[z,1]
-    column <- SV.table.3[z,2]
-    comp.matrix[row, column] <- SV.table.3[z,3]
+    row <- SV.table.3[z,1] # assing row
+    column <- SV.table.3[z,2] # assing column
+    comp.matrix[row, column] <- SV.table.3[z,3] # assing value
   }
   # if you look in kaluza, values in spillover matrix are *100
 
   # matrix R + fcs file format
+  # t(x): Given a matrix or data.frame x, t returns the transpose of x
   matrix.coef <- comp.matrix.fcs <- t(comp.matrix)
   
   comp.matrix.parameter.name <- doc.3
   
   # Other methodMethod 2 - comp matrix extraction
+  # error: Error in names[[i]] : subscript out of bounds
   comp.berlin <- getNodeSet(p[[1]][[aa]], "Protocol/Compensation", addFinalizer=TRUE)
   comp.berlin.1 <- getNodeSet(p[[1]][[aa]], "Protocol/Compensation/S/SV", addFinalizer=TRUE)
   
@@ -152,26 +167,55 @@ for (a in 1:nb.files.zip){
   # Extration of the main gate : must be on linear parameter FSC vs SSC by example.
   #@START the good one !!!
   # getNodeSet = Find Matching Nodes In An Internal XML Tree
-  gates.berlin <- getNodeSet(p[[1]][[aa]], "Protocol/Gates", addFinalizer=TRUE)
+  # Node: <analysis><worklist><Entries><Entry><Protocol><Gates>: tis node contains all gates set in Kaluza
+  # ERROR: Error in names[[i]] : subscript out of bounds!!!!!!!!!
+  gates.berlin <- getNodeSet(p[[1]][[aa]], "Protocol/Gates", addFinalizer=TRUE) 
   
+
+
   # M="FL1 INT" : parameter; S="C" is Logicle;  S="O" is Log; S="I" is Linear      i<-1
   # B = Boolean; R = rectangle ; P= polygon ; L = histogram
-  gate.mat <- lapply(1:xmlSize(gates.berlin[[1]]), function(i){
+  # lapply(X, FUN, …): lapply returns a list of the same length as X, each element of which is the result of applying FUN to the corresponding element of X
+  # gates.berlin[[1]]: everything between the node <gates>, xmlSize =110
+  gate.mat <- lapply(1:xmlSize(gates.berlin[[1]]), function(i){ 
+    # list of length 1:110, each element is result of applying function in following line
+    # extract tag name of an XMLNode Object, B for boolean, etc... most gates are P polygon
+    # e.g. > xmlValue(gates.berlin[[1]][["B"]][["ExpressionText"]]) outputs:
+    # [1] "(\"CD19 Tot Purifiés\" AND (NOT \"Lymphos B\"))"
     if (xmlName(gates.berlin[[1]][[i]])=="B") {xmlValue(gates.berlin[[1]][[i]][["ExpressionText"]])} 
     else {
       if (xmlName(gates.berlin[[1]][[i]])=="R") {
+        # If the name of tag is R (rectangular), create matrix: 
+        # matrix(data = NA, nrow = 1, ncol = 1, byrow = FALSE, dimnames = NULL): the data here for rect. are 4 values
+        # extracted from <gates><R><P>
+        # untlist: produce a vector which contains all the atomic components which occur in the list
+        # strsplit(x, split, fixed = FALSE, perl = FALSE, useBytes = FALSE): , is the split
+        # Split the elements the vector into substrings according to the matches to substring split within them.
         matrix(as.numeric(unlist(strsplit((matrix(xmlSApply(gates.berlin[[1]][[i]][["P"]], 
-          function(x) xmlGetAttr(x,"O")),nrow=2,ncol=1)),","))),nrow=2,ncol=2,byrow=TRUE,
-          dimnames=list(c("min","max"),as.list(xmlSApply(gates.berlin[[1]][[i]][["A"]], 
-          function(x) xmlGetAttr(x,"M"))))) }
+                                            function(x) xmlGetAttr(x,"O")),
+                                            nrow=2,
+                                            ncol=1)),
+                                  ","))),
+          nrow=2,
+          ncol=2,
+          byrow=TRUE,
+          # columnnames extracted from <gates><R><A>
+          dimnames=list(c("min","max"),as.list(xmlSApply(gates.berlin[[1]][[i]][["A"]], function(x) xmlGetAttr(x,"M"))))
+        ) }
+        # e.g. this matrix will look like this: 
+        # FL8 INT     FL9 INT
+        # min   -1103.887    5177.911
+        # max 1048410.875 1048410.375       
       else {
       if (xmlName(gates.berlin[[1]][[i]])=="P") {
         matrix(as.numeric(unlist(strsplit((matrix(xmlSApply(gates.berlin[[1]][[i]][["P"]], 
          function(x) xmlGetAttr(x,"O")),nrow=xmlSize(gates.berlin[[1]][[i]][["P"]]),ncol=1)),","))),
          nrow=xmlSize(gates.berlin[[1]][[i]][["P"]]),ncol=2,byrow=TRUE,
+         # nrow is determined on how many nodes (P) there are, cause it's a polygone gate, don't know nrows in advance
          dimnames=list(as.list(xmlSApply(gates.berlin[[1]][[i]][["P"]],xmlName)),as.list(xmlSApply(gates.berlin[[1]][[i]][["A"]], 
          function(x) xmlGetAttr(x,"M"))))) }
         else {
+        # this is for extracting gates in histogram, normally not necessary for this application
         if (xmlName(gates.berlin[[1]][[i]])=="L") {
           extraction.1 <-  matrix(xmlSApply(gates.berlin[[1]][[i]][["P"]], 
                                             function(x) xmlGetAttr(x,"O")),nrow=2,ncol=1) 
@@ -193,7 +237,7 @@ for (a in 1:nb.files.zip){
             #nrow=2,ncol=2,byrow=TRUE,
             #dimnames=list(c("min","max"),as.list(xmlSApply(gates.berlin[[1]][[i]][["A"]], 
             #function(x) xmlGetAttr(x,"M"))))) }
-        else {
+          else {
           "NA"; warning("Ellipsoid gate not yet supported")
           if (xmlName(gates.berlin[[1]][[i]])=="E") {
             
@@ -237,7 +281,10 @@ for (a in 1:nb.files.zip){
        }
       }
     })
-  
+# gate.mat is of type and class 'list'
+# the number of lists are equal to the number of gates (number of childnodes of <gate>), every list contains 
+# a matrix with the values for the gate.
+
 #####################################################
   
   #Extraction of region name and region matrix from all Rectangular and Polygonal region
