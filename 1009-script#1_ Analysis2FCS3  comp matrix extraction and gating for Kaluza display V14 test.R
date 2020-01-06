@@ -123,6 +123,7 @@ for (a in 1:nb.files.zip){
   
   #indices.numeric.coef <- !is.na(indices.matrix.row) & !is.na(indices.matrix.col)
   numeric.coef <- as.numeric(SV.table.1[,3]) # output is list with numeric values
+  # values in Kaluza are *10²
   ## step missing for commented commands? assignment indices.numeric.coef
   #numeric.1 <- numeric.coef[indices.numeric.coef]
   #SV.table.3 <- cbind(indices.matrix.row[indices.numeric.coef],
@@ -152,6 +153,7 @@ for (a in 1:nb.files.zip){
   # matrix R + fcs file format
   # t(x): Given a matrix or data.frame x, t returns the transpose of x
   matrix.coef <- comp.matrix.fcs <- t(comp.matrix)
+  # rows become columns, columns become rows --> matrix now looks like the one in kaluza
   
   comp.matrix.parameter.name <- doc.3
   
@@ -177,18 +179,20 @@ for (a in 1:nb.files.zip){
   # B = Boolean; R = rectangle ; P= polygon ; L = histogram
   # lapply(X, FUN, …): lapply returns a list of the same length as X, each element of which is the result of applying FUN to the corresponding element of X
   # gates.berlin[[1]]: everything between the node <gates>, xmlSize =110
+  # gate.mat will be of class list and holds all the different gates with their coordinates
   gate.mat <- lapply(1:xmlSize(gates.berlin[[1]]), function(i){ 
     # list of length 1:110, each element is result of applying function in following line
     # extract tag name of an XMLNode Object, B for boolean, etc... most gates are P polygon
     # e.g. > xmlValue(gates.berlin[[1]][["B"]][["ExpressionText"]]) outputs:
     # [1] "(\"CD19 Tot Purifiés\" AND (NOT \"Lymphos B\"))"
-    if (xmlName(gates.berlin[[1]][[i]])=="B") {xmlValue(gates.berlin[[1]][[i]][["ExpressionText"]])} 
+    if (xmlName(gates.berlin[[1]][[i]])=="B") {xmlValue(gates.berlin[[1]][[i]][["ExpressionText"]])} #output is the boolean expression stored in the node "ExpressionText"
+    # boolean gate has only the expression, no values, so can't be used
     else {
       if (xmlName(gates.berlin[[1]][[i]])=="R") {
         # If the name of tag is R (rectangular), create matrix: 
         # matrix(data = NA, nrow = 1, ncol = 1, byrow = FALSE, dimnames = NULL): the data here for rect. are 4 values
-        # extracted from <gates><R><P>
-        # untlist: produce a vector which contains all the atomic components which occur in the list
+        # extracted from <gates><R><P> (coordinates extracted with xmlSapply)
+        # unlist: produce a vector which contains all the atomic components which occur in the list
         # strsplit(x, split, fixed = FALSE, perl = FALSE, useBytes = FALSE): , is the split
         # Split the elements the vector into substrings according to the matches to substring split within them.
         matrix(as.numeric(unlist(strsplit((matrix(xmlSApply(gates.berlin[[1]][[i]][["P"]], 
@@ -288,22 +292,22 @@ for (a in 1:nb.files.zip){
 #####################################################
   
   #Extraction of region name and region matrix from all Rectangular and Polygonal region
-  # extract N from every first childnode of <gates>
+  # extract N from every first childnode of <gates>: the names of the gates
   region.name <- xmlSApply(gates.berlin[[1]], xmlGetAttr, "N")
   
-  region.name.index.R.P <- which(names(region.name) != "B")
+  region.name.index.R.P <- which(names(region.name) != "B") # gate with indexnumber 64 is B (boolean)
   
   region.name.R.P <- region.name[region.name.index.R.P]
-  region.matrix.R.P <- gate.mat[region.name.index.R.P]
+  region.matrix.R.P <- gate.mat[region.name.index.R.P] # is of class list, all gates with coordinates except for boolean
   
-  tempo.table <- rep(0,length(region.name.R.P)) # replicates 0
-  # name() outputs "R" or "P", unnname() outputs gate name e.g. "LY + 45Dim", tempo.table are all zeros (where you select gate)
+  tempo.table <- rep(0,length(region.name.R.P)) # replicates 0, gives us 109 zeros
+  # names() outputs "R" or "P", unnname() outputs gate name e.g. "LY + 45Dim", tempo.table are all zeros (where you select gate)
   region.table <- cbind(names(region.name.R.P), unname(region.name.R.P), as.numeric(tempo.table))
   colnames(region.table) <- c("Gate type","Gate name", "Selection 0 or 1")
   
   # this code to be able to copy the gating strategu to all fcs files from the analasis 
   # the gating strategy is saved in an RDS file this is a R data format
-  if(aa==1) {region.table <- edit(region.table, title= "Enter here your gating strategy") ####!!!!!!!!!!!
+  if(aa==1) {region.table <- edit(region.table, title= "Enter here your gating strategy") # editor opens where you can change table
              region.table.file <- paste(output.folder, "region.table.rds", sep="")
              saveRDS(region.table, file= paste(output.folder, "region.table.rds", sep=""))}
   
@@ -323,15 +327,15 @@ for (a in 1:nb.files.zip){
                   (fcs.test@description$`$CYT` == "Navios") |
                   (fcs.test@description$`$CYT` == "Navios EX") |
                   (fcs.test@description$`$CYT` == "Cytomics FC 500")
-  
+  # $CYT = navios here
   tempo.GalliosK <- fcs.test@description$`$CYT` == "Gallios (Kaluza)"
-  
+  # FALSE
   tempo.BD <- substr(fcs.test@description$`CREATOR`, start = 1, stop = 11) #== "BD FACSDiva"
   
   tempo.CytoFLEX <- (fcs.test@description$`$CYT` == "CytoFLEX") |
              (fcs.test@description$`$CYT` == "CytoFLEX LX") | 
              (fcs.test@description$`$CYT` == "CytoFLEX S")
-  
+  # FALSE
   
   
   #@START script for Gallios : Navios / FC500
@@ -452,6 +456,7 @@ for (a in 1:nb.files.zip){
   }
   colnames(comp.matrix.fcs) <- comp.matrix.fcs.name
   # first argument is the file to compensate, second it the matrix, fcs3 file is taken
+  # the compensation matrix is applied on the fcs file
   fcs.comp <- compensate(fcs, comp.matrix.fcs)
   
   
@@ -509,7 +514,7 @@ for (a in 1:nb.files.zip){
   for (index in 1:length(region.name.R.P)) {
     
     indices.gate.matrix <- match(colnames(region.matrix.R.P[[index]]),
-                                 fcs.parameters.data.new.name)
+                                 fcs.parameters.data.new.name) #match the columnnames from specific gate with index of the parameter
     
     new.name.gate.matrix <- old.fcs.parameter.name[indices.gate.matrix]
     colnames(region.matrix.R.P[[index]]) <- (new.name.gate.matrix)
@@ -519,9 +524,9 @@ for (a in 1:nb.files.zip){
   #based on the table region.table apply the gating stategy
   
   #If no gating fcs == fcs
-  if (sum(as.numeric(region.table[,3])) !=0){
-    indices.region <- which(region.table[,3]=="1") # stores index number of chosen gate
-    sFilename.gating.strategy <- paste(region.name.R.P[indices.region], collapse = "_")
+  if (sum(as.numeric(region.table[,3])) !=0){ # looks at column 3 (zeros) of the gate table
+    indices.region <- which(region.table[,3]=="1") # see which index number stores the chosen gate
+    sFilename.gating.strategy <- paste(region.name.R.P[indices.region], collapse = "_") # output is gatename
     
     for (loop.region in indices.region){
       gate.matrix <- as.matrix(region.matrix.R.P[[loop.region]]) # store the gate-values of chosen gate in new matrix
@@ -562,9 +567,11 @@ for (a in 1:nb.files.zip){
                                             pol.x = gate.matrix[,1], 
                                             pol.y = gate.matrix[,2], 
                                             mode.checked = FALSE)
-            
+            # output of P.gate is integer array, 1 = point is strictly interior to polygon
+            # 0 = strictly exterior to polygone
             fcs <- fcs [P.gate==1]
             fcs.comp <- fcs.comp [P.gate==1]
+            #!!!!!!!!!! it's in this step that we lose cells --> 150809 cells --> how improve this?
           }else{
             # for histograms, probably not used here
             if(region.table[loop.region,1] == "L"){  
@@ -591,27 +598,26 @@ for (a in 1:nb.files.zip){
   #name.FLA <- paste("FL", 1:10, "-A",sep="")
   
   # grep for the fluochromes
-  tempo.Navios.comp <- grep("^FL[0-9]",fcs.description.name)
+  tempo.Navios.comp <- grep("^FL[0-9]",fcs.description.name) # indexnumbers for FL's are stored 6-15
   if(length (tempo.Navios.comp) != 0) {
   name.FLA.1 <- grep("^FL[0-9]",fcs.description.name)
-  name.FLA <- fcs.description.name[tempo.Navios.comp] # all fluorochromes
+  name.FLA <- fcs.description.name[tempo.Navios.comp] # store all fluorochromes names
   } else {
     name.FLA <- comp.matrix.parameter.name
   }
     
-  FLA.descr <- name.FLA[1]
+  FLA.descr <- name.FLA[1] # is FL1 INT 
   for (z in 2:length(name.FLA)) {
-    FLA.descr <- paste(FLA.descr,name.FLA[z],sep = ",") # puts all FL x INT in a vector (comma seperated)
+    FLA.descr <- paste(FLA.descr,name.FLA[z],sep = ",") # puts all FL x INT in a vector/string (comma seperated)
   }
   
 
-  matrix.coef2.vector<-c(t(matrix.coef)) # t(x): Given a matrix or data.frame x, t returns the transpose of x
+  matrix.coef2.vector<-c(t(matrix.coef)) # t(x): Given a matrix or data.frame x, t returns the transpose of x, switches rows and columns again
+  # by using c() the values of matrix are saved in one vector column after column
   matrix.coef<-matrix.coef2.vector[1]
   for (z in 2:length(matrix.coef2.vector)) {
     matrix.coef <- paste(matrix.coef,matrix.coef2.vector[z],sep = ",") # vector of all matrixcoefficients
   }
-  
-  # Loss of total cells happens somewhere before the next step
 
   #############################################################################################
   # START building the fcs file with new parameters #
@@ -657,7 +663,7 @@ for (a in 1:nb.files.zip){
   #sFilename <- paste(output.folder,date.format,file.name.3,"-new.fcs", sep="")
   
   
-  
+  # which parts of the filename to adapt in the new output file
   sFilename <- paste(output.folder, date.format, "_",
                      fcs@description$`@SAMPLEID1`,"_",
                      fcs@description$`@SAMPLEID2`,"_",
@@ -678,6 +684,7 @@ for (a in 1:nb.files.zip){
   #END Cytomet is Gallios or Navios or FC500
   } else {
     
+  #!!!!!!!!!!!!!!!! This whole part until line 1236 is not necessary
   ################### Gallios Kaluza 
     #START for Gallios Kaluza 
     if(any(tempo.GalliosK) == TRUE ) {
@@ -1242,12 +1249,14 @@ for (a in 1:nb.files.zip){
   
   #create the HEADER and TEXT sections of the FCS file as strings
   #Delimiter choice
+  # Conversion and manipulation of objects of type "raw" to type "character"
   I<-rawToChar(as.raw(124)) #124="|" // 12="/f" BD Diva // #92="\" R
+  # I = character "|"
   sText.1<-I
-  sText.1<- paste(sText.1,"$BEGINANALYSIS",I,0,I,sep="")
-  sText.1<- paste(sText.1,"$ENDANALYSIS",I,0,I,sep="")
-  sText.1<- paste(sText.1,"$BEGINSTEXT",I,0,I,sep="")
-  sText.1<- paste(sText.1,"$ENDSTEXT",I,0,I,sep="")
+  sText.1<- paste(sText.1,"$BEGINANALYSIS",I,0,I,sep="") # output = "|$BEGINANALYSIS|0|"
+  sText.1<- paste(sText.1,"$ENDANALYSIS",I,0,I,sep="") # "|$BEGINANALYSIS|0|$ENDANALYSIS|0|"
+  sText.1<- paste(sText.1,"$BEGINSTEXT",I,0,I,sep="") # "|$BEGINANALYSIS|0|$ENDANALYSIS|0|$BEGINSTEXT|0|"
+  sText.1<- paste(sText.1,"$ENDSTEXT",I,0,I,sep="") # "|$BEGINANALYSIS|0|$ENDANALYSIS|0|$BEGINSTEXT|0|$ENDSTEXT|0|"
   #$BEGINDATA and $ENDATA hereafter
   sText.3<- paste("$FIL",I,sFilename.2,I,sep="")
   #sText.3<- paste(sText.3,"$SYS",I,"Windows XP 5.1",I,sep="")
