@@ -634,7 +634,7 @@ for (a in 1:nb.files.zip){
   
   
   #csv.File2be.Converted <- fcs@exprs
-  csv.File2be.Converted <- fcs@exprs
+  csv.File2be.Converted <- fcs.comp@exprs
   
   #FC500 fc3.0 tous les param�tres sont coch�s alors que dans 
   #le fc2 seuls les param�tres d'int�r�t sont pr�sents
