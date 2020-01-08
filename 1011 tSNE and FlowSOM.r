@@ -1,9 +1,10 @@
 ##################### Script 1011 tSNE & FlowSOM for Rstudio #####################
 ##################################################################################
 
-# Use Rplugin in kaluza to transform analysis file to FCS
-# Use this FCS file as input for the script
-
+### Clear Rstudio windows ###
+rm(list=ls()) # removes all object from Rstudio environment window
+cat("\014") # clears Rstudio console window
+if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 
 ##################################################################################
 # Loading packages
@@ -16,14 +17,26 @@ library(flowCore)
 library(FlowSOM)
 library(umap)
 
-
 ##################################################################################
 # Read FCS file
-fcsfile <- "D:/school/Stage officieel/Files/Output_plugin/20191203-113053-Carolien-all linear.fcs"
-ff <- flowCore::read.FCS(fcsfile) # ff = FlowFrame, nrows = events, ncol = parameters
-# class of ff = FlowFrame, type = s4 --> for plots should be numeric
-# use exprs() to make matrix
-ffmatrix <- exprs(ff) # class = matrix, type = double
+input.folder <- "D:/school/Stage officieel/tsne_input/"
+fcs.path <- list.files(path= input.folder, pattern = "\\.fcs", full.names=TRUE)
+ff <- read.FCS(fcs.path, column.pattern ="TIME", invert.pattern = TRUE) 
+# ff = FlowFrame, nrows = events, ncol = parameters, class of ff = FlowFrame, type = s4 --> for plots should be numeric, use exprs() to make matrix
+# column.pattern and invert.pattern make sure TIME is not included.
+channels <- colnames(ff) # save column names of flowframe in a vector
+# do biexponential transformation on expression values
+biexp <- biexponentialTransform(transformationId="defaultBiexponentialTransform", a = 0.5, b = 1, c = 0.5, d = 1, f = 0, w = 0)
+fftransformed <- transform(ff, transformList(channels, biexp)) #apply the transformation on all channels
+# expression values are still in the negative range as well, normalize
+normalize <- funtcion(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+inputmatrix <- exprs(fftransformed) # converts flowframe into matrix
+ffnormalized <- normalize(inputmatrix)
+logicle <- ffnormalized
+linear <- logicle*1024
+
 
 ##################################################################################
 # Predefined settings
