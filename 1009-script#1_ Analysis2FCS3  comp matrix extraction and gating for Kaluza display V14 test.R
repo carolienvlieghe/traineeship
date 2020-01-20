@@ -456,7 +456,7 @@ for (a in 1:nb.files.zip){
   }
   colnames(comp.matrix.fcs) <- comp.matrix.fcs.name
   # first argument is the file to compensate, second it the matrix, fcs3 file is taken
-  # the compensation matrix is applied on the fcs file
+  # the compensation matrix is applied on the fcs file, values are now the same as raw values from original
   fcs.comp <- compensate(fcs, comp.matrix.fcs)
   
   
