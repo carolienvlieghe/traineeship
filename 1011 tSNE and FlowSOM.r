@@ -24,16 +24,24 @@ fcs.path <- list.files(path= input.folder, pattern = "\\.fcs", full.names=TRUE)
 ff <- read.FCS(fcs.path, column.pattern ="TIME", invert.pattern = TRUE) 
 # ff = FlowFrame, nrows = events, ncol = parameters, class of ff = FlowFrame, type = s4 --> for plots should be numeric, use exprs() to make matrix
 # column.pattern and invert.pattern make sure TIME is not included.
-channels <- colnames(ff) # save column names of flowframe in a vector
-# do biexponential transformation on expression values
-biexp <- biexponentialTransform(transformationId="defaultBiexponentialTransform", a = 0.5, b = 1, c = 0.5, d = 1, f = 0, w = 0)
-fftransformed <- transform(ff, transformList(channels, biexp)) #apply the transformation on all channels
-# expression values are still in the negative range as well, normalize
-normalize <- funtcion(x) {
+
+#### Logicle transformation
+summary(ff)
+channels <- colnames(ff[,1:15])
+print(channels)
+
+
+lgcl <- estimateLogicle(ff, channels)
+transformed <- transform(ff, lgcl)
+summary(transformed)
+
+normalize <- function(x) {
   return ((x - min(x)) / (max(x) - min(x)))
 }
-inputmatrix <- exprs(fftransformed) # converts flowframe into matrix
+inputmatrix <- exprs(transformed[,1:15]) # converts flowframe into matrix
+summary(inputmatrix)
 ffnormalized <- normalize(inputmatrix)
+summary(ffnormalized)
 logicle <- ffnormalized
 linear <- logicle*1024
 
