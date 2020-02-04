@@ -743,8 +743,8 @@ ncol.cluster.DF <- ncol(cluster.DF)
 
 
 for(i in 1:nb.clusters){
-cluster.DF.indices <- which(cluster.DF[,ncol.cluster.DF]==i)
-cluster.mean [[i]] <- apply(cluster.DF[cluster.DF.indices, ], 2, median)
+  cluster.DF.indices <- which(cluster.DF[,ncol.cluster.DF]==i)
+  cluster.mean [[i]] <- apply(cluster.DF[cluster.DF.indices, ], 2, median)
 }
 cluster.mean.DF <- do.call(cbind, cluster.mean)
 colnames(cluster.mean.DF) <- paste("cluster ", 1:nb.clusters, sep="")
@@ -754,7 +754,7 @@ lab.Row <- colnames(logicle)
 lab.Row <- strsplit(lab.Row, " ")
 fcs.desc <- c()
 for(j in 1 : length(lab.Row) ) {
-fcs.desc [j] <- lab.Row [[j]] [1]
+  fcs.desc [j] <- lab.Row [[j]] [1]
 }
 
 lab.Row <- fcs.desc
@@ -771,5 +771,21 @@ heatmap.2(as.matrix(cluster.mean.DF[1:nrow(cluster.mean.DF)-1, ] ),
 		cexRow=1, cexCol = 1,
 		labRow = lab.Row, dendogram = "column", Rowv = FALSE, Colv= TRUE) 
 
+# > meta_mfi <- FlowSOM::MetaclusterMFIs(flowSOM.res)
+# > str(meta_mfi)
+# num [1:20, 1:15] 963 965 950 953 963 ...
+# - attr(*, "dimnames")=List of 2
+# ..$ : chr [1:20] "1" "2" "3" "4" ...
+# ..$ : chr [1:15] "FS.PEAK" "FS.INT" "FS.TOF" "SS.INT" ...
+# > heatmap.2(meta_mfi)
 
+
+# AggregateFlowFrames()
+# of
+# flowSet(ff, ff2)
+# FlowSOMSubset()
+# fSOM$metaData
+
+# table(GetClusters(fSOM)) / 
+# PlotVariable() 
 
