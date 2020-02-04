@@ -1,6 +1,7 @@
 ################ Conversion script: CSV to FCS ################
 ###############################################################
 # Save events from population of interest as CSV file in Kaluza
+# Copy csv and analysis file to inputfolder
 
 ### Clear Rstudio windows ###
 rm(list=ls()) # removes all object from Rstudio environment window
@@ -49,13 +50,36 @@ output.file.path <- paste0(output.folder, output.file, ".fcs") # assign the whol
 # Read the csv file
 csv.file <- read.csv(csv.path) # class = dataframe
 
-# Read fcs file dataset 1 in FCS 2.0 format (LMD from navios consists of 2 datasets, 1: FCS2.0 and 2: FCS3.0)
+# Read fcs file (LMD from navios consists of 2 datasets, 1: FCS2.0 and 2: FCS3.0)
 fcs2 <- read.FCS(file.name.fcs,dataset=1)
+fcs3 <- read.FCS(file.name.fcs,dataset=2)
 
 
 ### Make flowFrame from csv ###
-csvmatrix <- as.matrix(csv.file) # turn csv dataframe into a matrix 
-ff <- new("flowFrame",exprs=csvmatrix) # make new flowFrame from csvmatrix
+# Change columnnames of scatter in csv dataframe
+col <- c()
+for (i in c(1:5)) {
+  new <- sub("\\.", " ", colnames(csv.file[i]))
+  col <- append(col, new)
+}
+col <- append(col, colnames(csv.file[6:16]))
+colnames(csv.file) <- col
+colnames(csv.file)
+# turn csv dataframe into a matrix
+csvmatrix <- as.matrix(csv.file)  
+# turn matrix into flowFrame
+ff <- new("flowFrame",exprs=csvmatrix)
+
+# Change fluorochrome names to match kaluza
+new <- as.character(parameters(ff)$name[1:5])
+FL <- c()
+for (i in c(6:15)){
+  old <- parameters(ff)$name[i]
+  new <- append(new, paste0("FL",i-5," INT"))
+} 
+new <- append(new, as.character(parameters(ff)$name[16]))
+new <- as.factor(new)
+colnames(ff) <- new
 
 # Change rownames of annotated dataframe (look at it with: pData(parameters(flowFrame))) to fcs keyword $Pn
 rows <- c()
@@ -64,6 +88,12 @@ for (i in c(1:16)) {
 }
 rownames(pData(parameters(ff))) <- rows
 
+# Append range of FCS3 dataset to new fcs
+df.ff <- pData(parameters(ff))
+for (i in c(1:16)){
+  key <- paste0("$P",i,"R", collapse = ", ")
+  parameters(ff)$range[i] <- keyword(fcs3, key)
+}
 
 ### Write to flowFrame to FCS###
 write.FCS(x = ff, output.file.path)
