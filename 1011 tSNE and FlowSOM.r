@@ -19,7 +19,7 @@ library(umap)
 
 ##################################################################################
 # Read FCS file
-input.folder <- "D:/school/Stage officieel/tsne_input/"
+input.folder <- "D:/school/Stage officieel/csv_out/"
 fcs.path <- list.files(path= input.folder, pattern = "\\.fcs", full.names=TRUE)
 ff <- read.FCS(fcs.path, column.pattern ="TIME", invert.pattern = TRUE) 
 # ff = FlowFrame, nrows = events, ncol = parameters, class of ff = FlowFrame, type = s4 --> for plots should be numeric, use exprs() to make matrix
@@ -82,7 +82,7 @@ ADC.resolution <- 10
 
 ###################################################################################
 # Enter here the path of the output folder             
-output.folder <- "D:/school/Stage officieel/Files/Output_plugin/"
+output.folder <- "D:/school/Stage officieel/tsne_out/"
 dir.create(path=output.folder)
 # Enter here the ouput fcs file name             
 output.fcs.file.name <- "Carolien.fcs"
