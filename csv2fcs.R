@@ -20,9 +20,9 @@ library(Biobase)
 ### Assign in & output ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S")
-output.folder <- "D:/school/Stage officieel/Output/"
+output.folder <- "D:/school/Stage officieel/csv_out/"
 dir.create(path = output.folder)
-input.folder <- "D:/school/Stage officieel/Input/"
+input.folder <- "D:/school/Stage officieel/csv_in/"
 
 # Zip and unzip the .analysis container to extract xml and fcs
 new.file <- gsub("analysis","zip", fcs.path)
