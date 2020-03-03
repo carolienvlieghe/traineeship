@@ -36,10 +36,14 @@ ff <- read.FCS(file.name.fcs) # opens flowFrame
 ##################################################################################
 ### Transformation & normalization ###
 # Assign channels that need to be transformed
-channels <- colnames(ff[,6:15])
+# channels <- colnames(ff[,6:15])
 # Logicle transformation on FL channels, look at range, m can be default unless range exceeds 4.5 decades try loop?
-lgcl <- estimateLogicle(ff, channels)
-transformed <- transform(ff, lgcl)
+# lgcl <- estimateLogicle(ff, channels)
+# transformed <- transform(ff, lgcl)
+
+# Better transformation with??:
+transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform()))
+
 # normalize function
 normalize <- function(x) {
   return ((x - min(x)) / (max(x) - min(x)))
@@ -55,8 +59,10 @@ ffmatrix <- cbind(scatternorm, ffnormalized)
 # scale to [0,1024]
 linear <- ffmatrix*1024
 # make flowframe of scaled [0,1024] data
-ff.scaled <- flowFrame(linear)
-# assign names and description names according to kaluza
+param <- parameters(ff)
+ff.scaled <- flowFrame(linear, parameters = param)
+
+# assign names and description names according to kaluza: script csv2fcs adjusted
 fcs.description.name <- colnames(linear)
 fcs.description.desc <- as.character(parameters(ff)$desc[1:15])
 
@@ -66,13 +72,19 @@ fcs.description.desc <- as.character(parameters(ff)$desc[1:15])
 ##################################################################################
 
 # open pdf file to save plots
-pdf.output.path <- paste0(output.folder, date.format, " - flowSOM - ", base, ".pdf")
-pdf(pdf.output.path) # opens new pdf file
+# pdf.output.path <- paste0(output.folder, date.format, " - flowSOM - ", base, ".pdf")
+# pdf(pdf.output.path) # opens new pdf file
 
 # Assign parameters to use for tSNE, flowSOM and umap
 parameters.to.use <- c(6:11, 13:14)
 
 ### Check transformation with individual density plots
+
+# Save density plots in pdf
+pdf(file = "D:/school/Stage officieel/densityplots.pdf",
+    width = 8.3, 
+    height = 11.7)
+
 nb.plot.per.row <- 4
 nb.plot.per.column <- 3
 par(mfrow= c(nb.plot.per.row, nb.plot.per.column), pty="s")
@@ -124,12 +136,14 @@ fSOM <- flowsom.res[[1]]
 fSOM$prettyColnames <- fcs.description.desc
 
 fSOM <- UpdateNodeSize(fSOM, maxNodeSize = 7, reset=TRUE)
-windows()
+
+plot.new() # start new page for plot
 par(mfrow=c(1,1))
 par(cex.main=1.4)
 PlotStars(fSOM)
 summary(fSOM)
 
+# dev.off()
 # append fsom in fcs
 layout.fcs <- fSOM$MST$l
 mapping.fcs <- fSOM$map$mapping[,1]
@@ -172,10 +186,10 @@ metacluster <- metaClustering_consensus(fSOM$map$codes, k = 20)
 #metacluster <- MetaClustering(fSOM$map$codes, method = "metaClustering_Consensus", max = 10) #== flowSOM.res[[2]]
 
 ###
-windows()
 par(mfrow=c(1,1))
 par(cex.main=1.4)
 PlotStars(fSOM, view= "MST", backgroundValues = as.factor(metacluster), main = "PlotStars + AutoClusters") 
+dev.off()
 ###
 
 data.metacluster <- metacluster[fSOM$map$mapping[,1]]
