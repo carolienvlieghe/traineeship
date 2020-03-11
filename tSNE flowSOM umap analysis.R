@@ -45,9 +45,17 @@ ff <- read.FCS(file.name.fcs) # opens flowFrame
 transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform()))
 
 # normalize function
+# normalize with median of best negative population: the fcs file is a subpopulation were all cells were CD5 negative!
+# norm_median <- function(x) {
+#   return ( x - median(exprs(transformed[,13])))
+# }
 normalize <- function(x) {
   return ((x - min(x)) / (max(x) - min(x)))
 }
+# normalize with mean = 0, SD = 1
+# normsd <- function(x) {
+#   return ((x - mean(x))/sd(x))
+# }
 # apply normalization function
 inputmatrix <- exprs(transformed[,1:15]) # converts flowframe into matrix
 # FL's
@@ -76,7 +84,8 @@ fcs.description.desc <- as.character(parameters(ff)$desc[1:15])
 # pdf(pdf.output.path) # opens new pdf file
 
 # Assign parameters to use for tSNE, flowSOM and umap
-parameters.to.use <- c(6:11, 13:14)
+# Which parameters to use: don't use parameters used in preprocessing
+parameters.to.use <- c(8:11, 14)
 
 ### Check transformation with individual density plots
 
@@ -126,7 +135,7 @@ flowsom.res <- FlowSOM(ff.scaled,
                        ydim = round(sqrt(120)),
                        scaled.center = FALSE,
                        scaled.scale = FALSE,
-                       nClus = 20,
+                       nClus = 10,
                        rlen = 10,
                        compensate = FALSE,
                        transform = FALSE)
@@ -182,7 +191,7 @@ ff.fsom <- cbind2 (ff, matrix.node.fSOM.scaled)
 
 #Emdedd the FlowSOM Metaclusterization result in the fcs file
 metacluster <- flowsom.res [[2]]
-metacluster <- metaClustering_consensus(fSOM$map$codes, k = 20)
+metacluster <- metaClustering_consensus(fSOM$map$codes, k = 10)
 #metacluster <- MetaClustering(fSOM$map$codes, method = "metaClustering_Consensus", max = 10) #== flowSOM.res[[2]]
 
 ###
@@ -255,5 +264,3 @@ ff.total <- cbind2(ff.umap, matrix.tsne.scaled)
 write.FCS(ff.total, filename = output.file.path)
 
 
-
-dev.off()
