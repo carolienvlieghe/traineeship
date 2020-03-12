@@ -34,8 +34,9 @@ for (csv in csv.path) {
   ### Read the files ###
   # Read the csv file
   csv.file <- read.csv(csv) # class = dataframe
-  
-  
+  # Kaluza scales the values to 1024 before displaying
+  # MFI/1024 corresponds with original MFI in pre-analysis
+
   ### Make flowFrame from csv ###
   # Replace . with whitespace in colnames of scatter parameters
   col <- c()
@@ -75,7 +76,72 @@ for (csv in csv.path) {
   new <- as.factor(new)
   colnames(ff) <- new
   
+  # Adjust ranges
+  adc.resolution.Area <- 20
+  adc.resolution.Height <- 18
+  adc.resolution.TIME <- 20
+  adc.resolution.Width <- 10
   
+  for (i in no_var) {
+    if ((ff@parameters@data$name[i]=="FS H") | (ff@parameters@data$name[i]=="FS-H") |
+        (ff@parameters@data$name[i]=="FSC-H") | (ff@parameters@data$name[i]=="FSC H") |
+        (ff@parameters@data$name[i]=="FS-PEAK") | (ff@parameters@data$name[i]=="FS PEAK")) {
+      ff@parameters@data$range[i] <- as.character(2^adc.resolution.Height)
+      ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.Height)
+      ff@parameters@data$minRange[i] <- 0
+    } else {
+      if (ff@parameters@data$name[i]=="TIME") {
+        ff@parameters@data$range[i] <- as.character(2^adc.resolution.TIME)
+        ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.TIME)
+        ff@parameters@data$minRange[i] <- 0
+      } else {
+        if ((ff@parameters@data$name[i]=="FS W") | (ff@parameters@data$name[i]=="FS-W") |
+            (ff@parameters@data$name[i]=="FSC-Width") | (ff@parameters@data$name[i]=="FSC Width") |
+            (ff@parameters@data$name[i]=="FS-TOF") | (ff@parameters@data$name[i]=="FS TOF")) {
+          ff@parameters@data$range[i] <- as.character(2^adc.resolution.Width)
+          ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.Width)
+          ff@parameters@data$minRange[i] <- 0
+        } else {
+          if ((ff@parameters@data$name[i]=="SS H") | (ff@parameters@data$name[i]=="SS-H") |
+              (ff@parameters@data$name[i]=="SSC-H") | (ff@parameters@data$name[i]=="SSC H") |
+              (ff@parameters@data$name[i]=="SS-PEAK") | (ff@parameters@data$name[i]=="SS PEAK")) {
+            ff@parameters@data$range[i] <- as.character(2^adc.resolution.Height)
+            ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.Height)
+            ff@parameters@data$minRange[i] <- 0
+          } else {
+            if ((ff@parameters@data$name[i]=="SS W") | (ff@parameters@data$name[i]=="SS-W") |
+                (ff@parameters@data$name[i]=="SSC-Width") | (ff@parameters@data$name[i]=="SSC Width") |
+                (ff@parameters@data$name[i]=="SS-TOF") | (ff@parameters@data$name[i]=="SS TOF")) {
+              ff@parameters@data$range[i] <- as.character(2^adc.resolution.Width)
+              ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.Width)
+              ff@parameters@data$minRange[i] <- 0
+            } else {
+              ff@parameters@data$range[i] <- as.character(2^adc.resolution.Area)
+              ff@parameters@data$maxRange[i] <- as.character(2^adc.resolution.Area)
+              ff@parameters@data$minRange[i] <- 0
+            }
+          }
+        }
+      }
+    }
+  }
+  # try to extract this from range info and make it into loop
+  description(ff)$`$P1R` <- "262144"
+  description(ff)$`$P2R` <- "1048576"
+  description(ff)$`$P3R` <- "1024"
+  description(ff)$`$P4R` <- "1048576"
+  description(ff)$`$P5R` <- "1024"
+  description(ff)$`$P6R` <- "1048576"
+  description(ff)$`$P7R` <- "1048576"
+  description(ff)$`$P8R` <- "1048576"
+  description(ff)$`$P9R` <- "1048576"
+  description(ff)$`$P10R` <- "1048576"
+  description(ff)$`$P11R` <- "1048576"
+  description(ff)$`$P12R` <- "1048576"
+  description(ff)$`$P13R` <- "1048576"
+  description(ff)$`$P14R` <- "1048576"
+  description(ff)$`$P15R` <- "1048576"
+  description(ff)$`$P16R` <- "1048576"
   ### Write to flowFrame to FCS###
   write.FCS(x = ff, output.file.path)
 }
