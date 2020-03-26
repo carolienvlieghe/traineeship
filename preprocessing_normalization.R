@@ -98,12 +98,12 @@ negative.population.mode <- c()
 
 for(i in target.column) {
   windows()
-  x1 <- logicle[,i]
-  d1 <- density(x1)
-  plot(d1, xlab= colnames(table.to.be.computed)[i], main="Click on negative mode peak", cex.main=0.7, xlim=c(0,1024))
-  coord.1 <- locator(1, type = "l", col="red")
-  negative.population.mode[i] <- coord.1$x
-  abline(v = negative.population.mode[i],col="red",lwd=1,lty=5)
+  x1 <- logicle[,i] # all fluorescence intensities of parameter i
+  d1 <- density(x1) # compute density of these values
+  plot(d1, xlab= colnames(table.to.be.computed)[i], main="Click on negative mode peak", cex.main=0.7, xlim=c(0,1024)) # plot these densities
+  coord.1 <- locator(1, type = "l", col="red") # locator reads the position of the graphics cursor, max nb of points to locate, type l = line
+  negative.population.mode[i] <- coord.1$x # x-coördinate of the line is added for every parameter
+  abline(v = negative.population.mode[i],col="red",lwd=1,lty=5) #adds lines through the cuurrent plot --> v = xvalue vertical line
   dev.off()
 }
 negative.population.mode <- negative.population.mode[!is.na(negative.population.mode)]
@@ -117,10 +117,8 @@ reference.neg.pop.mode <- c(200, #1.300439, #FITC
                             200, #A700
                             200,#2.916238, #AA750
                             200,#1.123684, #PB
-                            700,#2.944265) #KrO
-                            200,#BV610
-                            200,#BV660
-                            200)#BV780
+                            700)#2.944265) #KrO
+                          
                             
                             
 virtual.gain <- reference.neg.pop.mode - negative.population.mode

@@ -44,7 +44,7 @@ for (fcs in file.name.fcs) {
   # transformed <- transform(ff, lgcl)
   
   # Better transformation with??:
-  transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform()))
+  transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform(w = 1, t = 1048576)))
   
   # normalize function
   # normalize with median of best negative population: the fcs file is a subpopulation were all cells were CD5 negative!
@@ -54,6 +54,9 @@ for (fcs in file.name.fcs) {
   normalize <- function(x) {
     return ((x - min(x)) / (max(x) - min(x)))
   }
+  scaling <- function(x) {
+    return (-1 + 2*(x - min(x)) / (max(x) - min(x)))
+  }
   # normalize with mean = 0, SD = 1
   # normsd <- function(x) {
   #   return ((x - mean(x))/sd(x))
@@ -61,7 +64,7 @@ for (fcs in file.name.fcs) {
   # apply normalization function
   inputmatrix <- exprs(transformed[,1:15]) # converts flowframe into matrix
   # FL's
-  ffnormalized <- normalize(inputmatrix[,6:15])
+  ffnormalized <- scaling(inputmatrix[,6:15])
   # scatter
   scatternorm <- normalize(inputmatrix[,1:5])
   # Combine scatter and FL
@@ -87,7 +90,7 @@ for (fcs in file.name.fcs) {
   
   # Assign parameters to use for tSNE, flowSOM and umap
   # Which parameters to use: don't use parameters used in preprocessing
-  parameters.to.use <- c(8:11, 14)
+  parameters.to.use <- c(8:11, 14:15)
   
   ### Check transformation with individual density plots
   
@@ -110,7 +113,7 @@ for (fcs in file.name.fcs) {
     aa <- aa +1
     x1 <- linear[,i]
     d1 <- density(x1)
-    plot(d1, xlab = fcs.description.desc[i], main = "Check logicle transformation", cew.main=0.7, xlim=c(0,1024))
+    plot(d1, xlab = fcs.description.desc[i], main = "Check logicle transformation", cew.main=0.7, xlim=c(-1024,1024))
   }
   
   ### Paired density plots on 1 page for FL's used in tsne
@@ -133,8 +136,8 @@ for (fcs in file.name.fcs) {
   flowsom.res <- FlowSOM(ff.scaled,
                          scale=FALSE,
                          colsToUse = parameters.to.use,
-                         xdim = round(sqrt(120)),
-                         ydim = round(sqrt(120)),
+                         xdim = 11, # default is 10: 10x10 = 100 clusters
+                         ydim = 11, # default is 10
                          scaled.center = FALSE,
                          scaled.scale = FALSE,
                          nClus = 10,
@@ -261,7 +264,6 @@ for (fcs in file.name.fcs) {
   tsne.1.scaled <- matrix.tsne.scaled[,1]
   tsne.2.scaled <- matrix.tsne.scaled[,2]
   ff.total <- cbind2(ff.umap, matrix.tsne.scaled)
-  
   
   write.FCS(ff.total, filename = output.file.path)
 }
