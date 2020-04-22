@@ -7,176 +7,107 @@ rm(list=ls()) # removes all object from Rstudio environment window
 cat("\014") # clears Rstudio console window
 if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 
-
+# Load packages
 library(flowCore)
-# assign in- & output
+library(ggcyto)
+
+# Assign in- & output
 output.folder <- "D:/school/Stage officieel/norm_out/"
-input.folder <- "D:/school/Stage officieel/csv_in/"
-file.name.csv <- list.files(path = input.folder, pattern = "\\.csv$", full.names = TRUE)
+input.folder <- "D:/school/Stage officieel/csv_out/"
 
-# read csv file
-linear <- as.matrix(read.csv(file.name.csv))
-ff <- flowFrame(linear)
-ff_t <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform()))
-normalize <- function(x) {
-  return ((x - min(x)) / (max(x) - min(x)))
-}
-inputmatrix <- exprs(ff_t[,1:15]) # converts flowframe into matrix
-# FL's
-ffnormalized <- normalize(inputmatrix[,6:15])
-# scatter
-scatternorm <- inputmatrix[,1:5]
-# Combine scatter and FL
-ffmatrix <- cbind(scatternorm, ffnormalized*1024)
-# scale to [0,1024]
-logicle <- ffmatrix
+# read set of fcs files to process
+set <- read.flowSet(files = NULL, path = input.folder)
 
-## define settings
-target.column <- 6:15
-TAG.channel <- 500
-final.cell.number <- 10000000000
-CD45.parameter.nb <- 15
-SSINT.parameter.nb <- 4
-# ADC resolution of the cytometer
-adc.resolution.Area <- 20
-adc.resolution.Height <- 18
-adc.resolution.Width <- 10
-adc.resolution.TIME <- 20
-# the max scale for FSC and SSC of the cytometer
-max.scale.FSC.SSC <- 2^20
+# Assign number of flowframes (nb.ff) in the flowset, channels to use & markernames
+nb.ff <- length(set)
+channels <- 6:15 # all fluorochromes
+markers <- c("CD58", "CD81", "CD34", "CD22", "CD38", "CD10", "CD19", "CD5", "CD20", "CD45") # B-ALL tube
+channel.names <- grep('FL', colnames(set), value = TRUE)
 
-tempo <- colnames(linear[,1:15])
-colnames(logicle) <- tempo
+# Transform data to Logicle (biexponential transformation): check density for good transformation (change parameters of function if not good)
+# Only the fluorochrome channels are transformed
+trf.set <- transform(set,transformList(colnames(set)[channels],logicleTransform(w = 1, t = 1048576)))
 
-###################################################################################
-#Enter here the name of the exported RPlugIn Logicle Matrix i.eFlowSOM_lgcl
-table.to.be.computed <- logicle
-################################################################################### 
-
-###################################################################################
-#Enter here the name of the exported RPlugIn Linear Matrix i.e FlowSOM
-table.to.be.used.as.fcs.file <- logicle
-################################################################################### 
-
-nb.parameter <- ncol(table.to.be.used.as.fcs.file)
-
-
-library(flowDensity)
-
-  
-###############################################################
-  
-TAG.fcs <- rep(TAG.channel, nrow(logicle))
-
-#############    check the biexpoentiel   #####################
-#check logicle coef in 1D plot
-windows()
-nb.plot.per.row <- 2
-nb.plot.per.column <- 2
-par(mfrow= c(nb.plot.per.row, nb.plot.per.column), pty="s", mar= c(5,4,4,2)-c(1,1,1,1.5) )
-nb.plot.per.windows <- nb.plot.per.row * nb.plot.per.column
-aa <- 0
-
-for(i in target.column) {
-  if(aa==nb.plot.per.windows){
-    windows()
-    par(mfrow= c(nb.plot.per.row, nb.plot.per.column), pty="s", mar= c(5,4,4,2)-c(1,1,1,1.5) )
-    aa <- 0
+# Density plots of all samples to check the logicle transformation, 1 sample per window
+for(i in c(1:nb.ff)){
+  windows(title = paste("Logicle transformation of sample", i, sep = " "))
+  par(mfrow= c(4,3), pty="s")
+  nb.plots.per.windows <- 10
+  aa <- 0
+  for (j in channels) {
+    if(aa==nb.plots.per.windows) {
+      windows(title = paste("Logicle transformation of sample", i, sep = " "))
+      par(mfrow= c(4,3), pty="s")
+      aa <- 0
+    }
+    aa <- aa+1
+    d1 <- density(exprs(trf.set[[i]][,j]))
+    plot(d1, xlab = colnames(trf.set[[i]][,j]), xlim=c(-1,5), main= markers[aa])
   }
-  aa <- aa+1
-    
-  x1 <- table.to.be.computed[,i]
-  d1 <- density(x1)
-  plot(d1, xlab= colnames(table.to.be.computed)[i], xlim=c(0,1024),
-       main="Check logicle transformation", cex.main=0.7)
-}
-dev.off()
-  
-#Selection of the negative mode of each negative lymphocyte population
-#using the mouse
-negative.population.mode <- c()
-
-for(i in target.column) {
-  windows()
-  x1 <- logicle[,i] # all fluorescence intensities of parameter i
-  d1 <- density(x1) # compute density of these values
-  plot(d1, xlab= colnames(table.to.be.computed)[i], main="Click on negative mode peak", cex.main=0.7, xlim=c(0,1024)) # plot these densities
-  coord.1 <- locator(1, type = "l", col="red") # locator reads the position of the graphics cursor, max nb of points to locate, type l = line
-  negative.population.mode[i] <- coord.1$x # x-coördinate of the line is added for every parameter
-  abline(v = negative.population.mode[i],col="red",lwd=1,lty=5) #adds lines through the cuurrent plot --> v = xvalue vertical line
-  dev.off()
-}
-negative.population.mode <- negative.population.mode[!is.na(negative.population.mode)]
-cat(negative.population.mode)
-reference.neg.pop.mode <- c(200, #1.300439, #FITC
-                            200, #0.994293, # PE
-                            200, #1.4777779, #ECD
-                            200,#1.525965, #PC5.5
-                            200,#1.587294, #PC7
-                            200,#1.254920, #APC
-                            200, #A700
-                            200,#2.916238, #AA750
-                            200,#1.123684, #PB
-                            700)#2.944265) #KrO
-                          
-                            
-                            
-virtual.gain <- reference.neg.pop.mode - negative.population.mode
-
-csv.logicle.corrected <- lapply(c(1:10), function(i)
-  table.to.be.computed[,i+5] +
-    (reference.neg.pop.mode[i] - negative.population.mode[i]))
-
-csv.logicle.corrected <- do.call(cbind, csv.logicle.corrected)
-
-if(nrow(csv.logicle.corrected) >final.cell.number){
-  sample_indices <- sample(1:nrow(csv.logicle.corrected), final.cell.number)
-  csv.logicle.corrected <- csv.logicle.corrected[sample_indices,]
-  table.to.be.used.as.fcs.file <- table.to.be.used.as.fcs.file[sample_indices,]	
 }
 
-TIME <- 1:nrow(csv.logicle.corrected)
-TIME <- TIME/10
+# E.g. Scatterplot of two markers:
+# plot(x = exprs(trf.set[[1]][,13]), y = exprs(trf.set[[1]][,15]))
 
-csv.corrected <- cbind(csv.logicle.corrected,TIME)
-csv.corrected <- cbind(logicle[,1:5], csv.corrected)
-colnames(csv.corrected) <- c(colnames(logicle), "TIME")
+# assign values for the landmark for the peak of the negative population (for markers that are only positive, chose a landmark for the peak of the neg. pop)
+reference.neg.pop.mode <- c(1, #FL1 CD58
+                            3.5, # FL2 CD81 only pos
+                            1, # FL3 CD34
+                            1.5, # FL4 CD22 dim to pos
+                            1.5, # FL5 CD38 dim to pos
+                            1, # FL6 CD10
+                            2.5, # FL7 CD19 only pos
+                            1, # FL8 CD5
+                            1, # FL9 CD20
+                            1.5) # FL10 CD45
 
-#check csv corrected
-for(i in target.column) {
-  if(aa==nb.plot.per.windows){
-    windows()
-    par(mfrow= c(nb.plot.per.row, nb.plot.per.column), pty="s", mar= c(5,4,4,2)-c(1,1,1,1.5) )
-    aa <- 0
+# select peaks
+# ff = flowframe, FL = fluorochrome
+a <- 1
+for (ff in c(1:nb.ff)){
+  aa <- 1
+  negative.population.mode <- c()
+  # Select the peaks with the cursor
+  for(FL in channels) {
+    windows(title = paste("selection of negative peaks of sample", j, sep = " "))
+    x1 <- exprs(trf.set[[ff]][,FL]) # all fluorescence intensities of parameter i
+    d1 <- density(x1) # compute density of these values
+    plot(d1, xlab= colnames(exprs(trf.set[[ff]][,FL])), main= markers[aa], sub = "Click on negative peak (for CD19 & CD81: chose most positive peak)", cex.main=0.7, xlim=c(-1,5)) # plot these densities
+    coord.1 <- locator(1, type = "l", col="red") # locator reads the position of the graphics cursor, max nb of points to locate, type l = line
+    # Possibility to turn back when you clicked wrong?
+    negative.population.mode[FL] <- coord.1$x # x-coördinate of the line is added for every parameter
+    abline(v = negative.population.mode[FL],col="red",lwd=1,lty=5) #adds lines through the cuurrent plot --> v = xvalue vertical line
+    aa <- aa+1
+    dev.off()
   }
-  aa <- aa+1
-  
-  x1 <- csv.corrected[,i]
-  d1 <- density(x1)
-  plot(d1, xlab= colnames(table.to.be.computed)[i], xlim= c(0,1024),
-       main="Check corrected csv ", cex.main=0.7)
-  abline(v = negative.population.mode[i],col="red",lwd=1,lty=5)
-  abline(v = reference.neg.pop.mode[i],col="blue",lwd=1,lty=5)
+  negative.population.mode <- negative.population.mode[!is.na(negative.population.mode)]
+  aa <- 1
+  # Compute the new values
+  for (FL in channels){
+    new.value <- each_row(trf.set[[ff]][,FL], function(x) {x + (reference.neg.pop.mode[a] - negative.population.mode[a])})
+    new.value <- as.matrix(new.value)
+    if ( FL == 6){
+      new <- new.value
+    } else {
+      new <- cbind(new, new.value)
+    }
+    a <- a+1
+  }
+  a <- 1
+  # Assign the new values to the flowframe
+  colnames(new) <- channel.names
+  new <- cbind(exprs(trf.set[[ff]][,1:5]), new)
+  new <- cbind(new, exprs(trf.set[[ff]][,16]))
+  exprs(trf.set[[ff]]) <- new
 }
+# Samples are now normalized 
 
-#End check
 
-parameter.name.linear <- colnames(logicle)
-parameter.name.logicle <- paste0("<N>-", parameter.name.linear)
-#parameter.name.logicle[c(FSCINT.parameter.nb ,SSINT.parameter.nb)] <- paste0(parameter.name.linear[c(FSCINT.parameter.nb ,SSINT.parameter.nb)], "-<N>")
+# Inverse transform (necessary? better for output)
+logicle <- logicleTransform(w = 1, t = 1048576)
+inv <- inverseLogicleTransform(trans = logicle)
+inv.set <- transform(trf.set,transformList(colnames(trf.set)[channels],inv))
 
-csv.DF.numeric <- cbind(csv.corrected, TAG.fcs)
-colnames(csv.DF.numeric) <- c(parameter.name.logicle, "TIME" ,"TAG.fcs")
 
-print(colnames(csv.DF.numeric) )
-print(nrow(csv.DF.numeric) )
-
-ff <- flowFrame(csv.DF.numeric)
-
-#Define the complete output fcs file name
-date <- Sys.time()
-date.format <- format(date, format= "%Y%m%d-%H%M%S-")
-
-sFilename <- paste("D:/school/Stage officieel/", "norm","_normalized.fcs" ,sep="")
-write.FCS(ff, filename = sFilename)
-summary(ff)
+# Save flowset as separate fcs files in assigned output folder
+write.flowSet(inv.set, outdir = output.folder)
