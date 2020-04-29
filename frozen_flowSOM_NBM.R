@@ -23,10 +23,6 @@ date.format <- format(date, format= "%Y%m%d-%H%M%S")
 #########
 # Start #
 #########
-
-# set the seed for reproducible results
-set.seed(24)
-
 # read FCS file into flowframe
 ff <- read.FCS("D:/school/Stage officieel/DATA/normal bone marrows to normalize/csv2fcs/merged/15_NBM.fcs")
 
