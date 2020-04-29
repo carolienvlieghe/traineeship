@@ -12,11 +12,13 @@ library(flowCore)
 library(ggcyto)
 
 # Assign in- & output
-output.folder <- "D:/school/Stage officieel/norm_out/"
-input.folder <- "D:/school/Stage officieel/csv_out/"
+input.folder <- "D:/path_to_inputfolder/"
+output.folder <- "D:/path_to_outputfolder/"
+dir.create(path = output.folder)
 
 # read set of fcs files to process
 set <- read.flowSet(files = NULL, path = input.folder)
+# sampleNames(set): list of all sample names
 
 # Assign number of flowframes (nb.ff) in the flowset, channels to use & markernames
 nb.ff <- length(set)
@@ -29,20 +31,15 @@ channel.names <- grep('FL', colnames(set), value = TRUE)
 trf.set <- transform(set,transformList(colnames(set)[channels],logicleTransform(w = 1, t = 1048576)))
 
 # Density plots of all samples to check the logicle transformation, 1 sample per window
-for(i in c(1:nb.ff)){
-  windows(title = paste("Logicle transformation of sample", i, sep = " "))
+for(ff in c(1:nb.ff)){
+  windows(title = paste("Logicle transformation of sample", ff, sep = " "))
   par(mfrow= c(4,3), pty="s")
   nb.plots.per.windows <- 10
   aa <- 0
-  for (j in channels) {
-    if(aa==nb.plots.per.windows) {
-      windows(title = paste("Logicle transformation of sample", i, sep = " "))
-      par(mfrow= c(4,3), pty="s")
-      aa <- 0
-    }
+  for (FL in channels) {
     aa <- aa+1
-    d1 <- density(exprs(trf.set[[i]][,j]))
-    plot(d1, xlab = colnames(trf.set[[i]][,j]), xlim=c(-1,5), main= markers[aa])
+    d1 <- density(exprs(trf.set[[ff]][,FL]))
+    plot(d1, xlab = colnames(trf.set[[ff]][,FL]), xlim=c(-0.5,4.5), main= markers[aa])
   }
 }
 
@@ -50,16 +47,16 @@ for(i in c(1:nb.ff)){
 # plot(x = exprs(trf.set[[1]][,13]), y = exprs(trf.set[[1]][,15]))
 
 # assign values for the landmark for the peak of the negative population (for markers that are only positive, chose a landmark for the peak of the neg. pop)
-reference.neg.pop.mode <- c(1, #FL1 CD58
+reference.neg.pop.mode <- c(1.2, #FL1 CD58
                             3.5, # FL2 CD81 only pos
-                            1, # FL3 CD34
-                            1.5, # FL4 CD22 dim to pos
-                            1.5, # FL5 CD38 dim to pos
-                            1, # FL6 CD10
+                            1.2, # FL3 CD34
+                            1.8, # FL4 CD22 dim to pos
+                            3, # FL5 CD38 dim to pos
+                            1.2, # FL6 CD10
                             2.5, # FL7 CD19 only pos
-                            1, # FL8 CD5
-                            1, # FL9 CD20
-                            1.5) # FL10 CD45
+                            1.2, # FL8 CD5
+                            1.2, # FL9 CD20
+                            2.3) # FL10 CD45
 
 # select peaks
 # ff = flowframe, FL = fluorochrome
@@ -69,13 +66,13 @@ for (ff in c(1:nb.ff)){
   negative.population.mode <- c()
   # Select the peaks with the cursor
   for(FL in channels) {
-    windows(title = paste("selection of negative peaks of sample", j, sep = " "))
+    windows(title = paste("selection of negative peaks of sample", ff, sep = " "))
     x1 <- exprs(trf.set[[ff]][,FL]) # all fluorescence intensities of parameter i
     d1 <- density(x1) # compute density of these values
-    plot(d1, xlab= colnames(exprs(trf.set[[ff]][,FL])), main= markers[aa], sub = "Click on negative peak (for CD19 & CD81: chose most positive peak)", cex.main=0.7, xlim=c(-1,5)) # plot these densities
+    plot(d1, xlab= colnames(exprs(trf.set[[ff]][,FL])), main= markers[aa], sub = "Select the negative peaks. For CD19, CD81 and CD38 select the most positive population, for CD45 select the middle population", cex.main=0.7, xlim=c(-0.5,4.5)) # plot these densities
     coord.1 <- locator(1, type = "l", col="red") # locator reads the position of the graphics cursor, max nb of points to locate, type l = line
     # Possibility to turn back when you clicked wrong?
-    negative.population.mode[FL] <- coord.1$x # x-coördinate of the line is added for every parameter
+    negative.population.mode[FL] <- coord.1$x # x-coï¿½rdinate of the line is added for every parameter
     abline(v = negative.population.mode[FL],col="red",lwd=1,lty=5) #adds lines through the cuurrent plot --> v = xvalue vertical line
     aa <- aa+1
     dev.off()
@@ -101,9 +98,28 @@ for (ff in c(1:nb.ff)){
   exprs(trf.set[[ff]]) <- new
 }
 # Samples are now normalized 
+# Check normalized samples
+#check csv corrected
+# for(i in c(1:nb.ff)){
+#   windows(title = paste("Logicle transformation of sample", i, sep = " "))
+#   par(mfrow= c(4,3), pty="s")
+#   nb.plots.per.windows <- 10
+#   aa <- 0
+#   for (j in channels) {
+#     if(aa==nb.plots.per.windows) {
+#       windows(title = paste("Logicle transformation of sample", i, sep = " "))
+#       par(mfrow= c(4,3), pty="s")
+#       aa <- 0
+#     }
+#     aa <- aa+1
+#     d1 <- density(exprs(trf.set[[i]][,j]))
+#     plot(d1, xlab = colnames(trf.set[[i]][,j]), xlim=c(-1,5), main= markers[aa])
+#     abline(v = negative.population.mode[i],col="red",lwd=1,lty=5)
+#     abline(v = reference.neg.pop.mode[i],col="blue",lwd=1,lty=5)
+#   }
+# }
 
-
-# Inverse transform (necessary? better for output)
+# Inverse transform (necessary? better for output )
 logicle <- logicleTransform(w = 1, t = 1048576)
 inv <- inverseLogicleTransform(trans = logicle)
 inv.set <- transform(trf.set,transformList(colnames(trf.set)[channels],inv))

@@ -9,18 +9,16 @@ cat("\014") # clears Rstudio console window
 if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 
 ### Load libraries ###
-library(methods)
 library(flowCore)
-library(Biobase)
 
-### Assign in & output ###
+### Assign in & output folders ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S")
-output.folder <- "D:/school/Stage officieel/csv_out/"
+input.folder <- "D:/path_to_inputfolder/"
+output.folder <- "D:/path_to_outputfolder/"
 dir.create(path = output.folder)
-input.folder <- "D:/school/Stage officieel/csv_in/"
 
-# List the and csv files in the input folder (make loop to convert multiple csv files)
+# List all csv files in the input folder
 csv.path <- list.files(path= input.folder, pattern = "\\.csv$", full.names=TRUE)
 
 for (csv in csv.path) {
