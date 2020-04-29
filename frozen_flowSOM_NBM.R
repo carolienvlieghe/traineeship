@@ -145,6 +145,12 @@ for (seed in 1:24) {
   PlotStars(fSOM, view= "grid", backgroundValues = as.factor(metacluster), 
             backgroundColor = grDevices::colorRampPalette(rainbow(6)),
             main = "MST with metaclusters")
+  # Query for CD34+ CD10+ population (MRD)
+  query <- c("FL3 INT" = "high", "FL6 INT" = "high")
+  query_res <- QueryStarPlot(UpdateNodeSize(fSOM, reset=TRUE), query, plot = FALSE)
+  cellTypes <- factor(rep("Others", 49), levels=c("Others", "CD34+ CD10+"))
+  cellTypes[query_res$selected] <- "CD34+ CD10+"
+  PlotStars(fSOM, backgroundValues = cellTypes, backgroundColor = c("#FFFFFF00", "#0000FF22"))
   dev.off()
 }
 
@@ -197,12 +203,3 @@ for (seed in 1:24) {
 # PlotStars(fSOM, view= "MST", backgroundValues = as.factor(metaClustering), 
 #           backgroundColor = grDevices::colorRampPalette(rainbow(7)),
 #           main = "MST with metaclusters")
-# 
-# 
-# # If no manual gating to map: possible to query the tree to indicate nodes similar to a specified pattern
-# # e.g. look for CD34+, CD10+ cells
-# query <- c("FL3 INT" = "high", "FL6 INT" = "high")
-# query_res <- QueryStarPlot(UpdateNodeSize(fSOM, reset=TRUE), query, plot = FALSE)      
-# cellTypes <- factor(rep("Unknown", 49), levels=c("Unknown", "CD34+ CD10+"))
-# cellTypes[query_res$selected] <- "CD34+ CD10+"
-# PlotStars(fSOM, backgroundValues = cellTypes, backgroundColor = c("#FFFFFF00", "#0000FF22"))
