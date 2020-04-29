@@ -14,13 +14,13 @@ library(flowCore)
 ### Assign in & output folders ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S")
-input.folder <- "D:/path_to_inputfolder/"
-output.folder <- "D:/path_to_outputfolder/"
+# Select the csv files you want to convert in the dialog window and list all files in csv.path variable
+csv.path <- choose.files(multi = TRUE, caption = "Select csv files to convert")
+# Open dialog window to chose output folder
+output.folder <- choose.dir(caption = "Select folder to store new fcs files")
 dir.create(path = output.folder)
 
-# List all csv files in the input folder
-csv.path <- list.files(path= input.folder, pattern = "\\.csv$", full.names=TRUE)
-
+# Start loop to convert each csv file to fcs format
 for (csv in csv.path) {
   # assign the output for the new fcs file 
   csv.base <- basename(csv)
