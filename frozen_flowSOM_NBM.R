@@ -14,44 +14,43 @@ if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 library(flowCore)
 library(FlowSOM)
 
-# Output folder
-output.folder <- "D:/school/Stage officieel/frozen_flowSOM/"
-dir.create(output.folder)
-date <- Sys.time()
-date.format <- format(date, format= "%Y%m%d-%H%M%S")
-
 #########
 # Start #
 #########
-# read FCS file into flowframe
-ff <- read.FCS("D:/school/Stage officieel/DATA/normal bone marrows to normalize/csv2fcs/merged/15_NBM.fcs")
+# read FCS file, store it as flowframe ff
+ff <- read.FCS(filename = choose.files(caption = "Select merged NBM file", multi = FALSE))
+
+# Assign outputfolder
+output.folder <- choose.dir(caption = "Select folder to store fcs & pdf of reference MST's")
 
 # store AnnotatedDataFrame of original fcs
 adf <- parameters(ff)
 
 # Logicle transformation
-ff.trf <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform(w = 1, t = 1048576)))
+# get index for channels to transform (FL)
+FL.index <- grep("FL", colnames(ff))
+ff.trf <- transform(ff,transformList(colnames(ff)[FL.index],logicleTransform(w = 0.9, t = 1048576)))
 
-# Density plot to check transformation
-channels <- c(6:15) # FL channels
-markers <- c("CD58", "CD81", "CD34", "CD22", "CD38", "CD10", "CD19", "CD5", "CD20", "CD45") # B-ALL tube markers
+### Density plot to check transformation
+# save (pretty: CD) channelnames of flowframe in variable
+FL.names <- as.character(parameters(ff)$desc[FL.index])
 windows(title = "Logicle transformation")
 par(mfrow= c(4,3), pty="s")
 nb.plots.per.windows <- 10
 aa <- 0
-for (FL in channels) {
+for (FL in FL.index) {
   aa <- aa+1
   d1 <- density(exprs(ff.trf[,FL]))
-  plot(d1, xlab = colnames(ff.trf[,FL]), xlim=c(min(exprs(ff.trf[,FL])),max(exprs(ff.trf[,FL]))), main= markers[aa])
+  plot(d1, xlab = colnames(ff.trf[,FL]), xlim=c(-0.5,4.5), main= FL.names[aa])
 }
 
 #  normalize with mean = 0, SD = 1
 normsd <- function(x) {
   return ((x - mean(x))/sd(x))
 }
-FL.norm <- normsd(exprs(ff.trf)[,6:15])
+FL.norm <- normsd(exprs(ff.trf)[,FL.index])
 # replace the expression matrix with the normalized values
-exprs(ff.trf)[,6:15] <- norm
+exprs(ff.trf)[,FL.index] <- FL.norm
 
 ### preprocessing finished ###
 
@@ -60,14 +59,12 @@ parameters.to.use <- c(7:11,14:15)
 # Assign parameters for flowSOM
 x.dim <- 11
 y.dim <- 11
-nb.clusters.fsom <- 5
 dispersion.coef <- 50  #default=30 how big you want the nodes
-fl.names <- ff.trf@parameters@data$desc # for legend plots
+channel.names <- ff.trf@parameters@data$desc # for legend plots
 
 # Make 24 MST's of NBM, analyse them and chose the best one as FROZEN flowSOM for further analysis with samples
 for (seed in 1:24) {
-  # Assign name for file with settings for flowSOM
-  file.name.fixed.flowSOM <- paste0(output.folder, date.format, "_Frozen_", seed, ".Rdata")
+  output.file <- paste0(output.folder, "\\reference_MST_", seed)
   # set seed
   set.seed(seed)
   # Use wrapper function to perform flowSOM
@@ -80,9 +77,13 @@ for (seed in 1:24) {
                   colsToUse = parameters.to.use,
                   xdim = x.dim,
                   ydim = y.dim,
-                  nClus = 100,
+                  # fSOM.res$metaclustering: nClus = NULL, maxMeta --> variable number of levels
+                  # If nClus is set, number of levels = nClus
+                  nClus = 10,
+                  maxMeta = 10, 
                   rlen = 10)
-  save(fSOM.res, file = file.name.fixed.flowSOM)
+  # Save Rdata file
+  save(fSOM.res, file = paste0(output.file, ".Rdata"))
   fSOM <- fSOM.res[[1]]
   # Save coördinates of nodes and add it to flowframe
   nodes.mapping <- fSOM$map$mapping[,1] # value between 1 - 100 (--> which node does the event belong to)
@@ -119,23 +120,51 @@ for (seed in 1:24) {
   
   # get metaclustering data for fcs file
   metacluster <- fSOM.res [[2]]
-  metacluster <- metaClustering_consensus(fSOM$map$codes, k = 6)
+  metacluster <- metaClustering_consensus(fSOM$map$codes, k = 5)
   data.metacluster <- metacluster[fSOM$map$mapping[,1]] # = metaClustering_perCell <- metaClustering[fSOM$map$mapping[,1]]
   data.metacluster <- as.matrix(data.metacluster)
   colnames(data.metacluster) <- "Metaclustering Consensus"
   
   ff.meta <-  cbind2(ff.fsom, data.metacluster)
   
-  write.FCS(ff.meta, filename = paste0(output.folder, date.format, "_Frozen_flowSOM_", seed, ".fcs"))
+  # Add range keyword to description slot and ranges to annotated datafram
+  for (i in c((ncol(ff)+1):ncol(ff.meta))){
+    # adjust rowname of adf
+    r.name <- paste0("$P",i)
+    rownames(ff.meta@parameters@data)[i] <- r.name
+    # adjust desc of adf
+    desc <- ff.meta@parameters@data$name[i]
+    ff.meta@parameters@data$desc[i] <- desc
+    # Add $PnN to the desc slot
+    name.kw <- paste0("$P",i,"N")
+    ff.meta@description[name.kw] <- ff.meta@parameters@data$name[i]
+    desc.kw <- paste0("$P",i,"S")
+    ff.meta@description[desc.kw] <- ff.meta@parameters@data$desc[i]
+    # Adjust range of adf and add $PnR keyword to the desc slot
+    range.kw <- paste0("$P",i,"R")
+    if (ff.meta@parameters@data$name[i]=="Metaclustering Consensus"){
+      ff.meta@parameters@data$range[i] <- ff.meta@parameters@data$maxRange[i] + 1
+      ff.meta@parameters@data$maxRange[i] <- ff.meta@parameters@data$maxRange[i] + 1
+      ff.meta@parameters@data$minRange[i] <- 0
+      ff.meta@description[range.kw] <- ff.meta@parameters@data$range[i]
+    } else {
+      ff.meta@parameters@data$range[i] <- 1100
+      ff.meta@parameters@data$maxRange[i] <- 1100
+      ff.meta@parameters@data$minRange[i] <- 0
+      ff.meta@description[range.kw] <- ff.meta@parameters@data$range[i]
+    }
+  }
+  
+  write.FCS(ff.meta, filename = paste0(output.file, ".fcs"))
   
   # Figures
-  pdf.name <- paste0(output.folder, date.format, "_frozen_flowSOM_", seed, ".pdf")
+  pdf.name <- paste0(output.file, ".pdf")
   pdf(file = pdf.name,
       width = 8.3, 
       height = 11.7)
   par(mfrow=c(1,1))
   par(cex.main=1.4)
-  fSOM$prettyColnames <- as.character(fl.names)
+  fSOM$prettyColnames <- as.character(channel.names)
   PlotStars(fSOM)
   # Plot metaclusters
   PlotStars(fSOM, view= "MST", backgroundValues = as.factor(metacluster), 
@@ -146,11 +175,11 @@ for (seed in 1:24) {
             backgroundColor = grDevices::colorRampPalette(rainbow(6)),
             main = "MST with metaclusters")
   # Query for CD34+ CD10+ population (MRD)
-  query <- c("FL3 INT" = "high", "FL6 INT" = "high")
-  query_res <- QueryStarPlot(UpdateNodeSize(fSOM, reset=TRUE), query, plot = FALSE)
-  cellTypes <- factor(rep("Others", 49), levels=c("Others", "CD34+ CD10+"))
-  cellTypes[query_res$selected] <- "CD34+ CD10+"
-  PlotStars(fSOM, backgroundValues = cellTypes, backgroundColor = c("#FFFFFF00", "#0000FF22"))
+  # query <- c("FL3 INT" = "high", "FL6 INT" = "high")
+  # query_res <- QueryStarPlot(UpdateNodeSize(fSOM, reset=TRUE), query, plot = FALSE)
+  # cellTypes <- factor(rep("Others", 49), levels=c("Others", "CD34+ CD10+"))
+  # cellTypes[query_res$selected] <- "CD34+ CD10+"
+  # PlotStars(fSOM, backgroundValues = cellTypes, backgroundColor = c("#FFFFFF00", "#0000FF22"))
   dev.off()
 }
 

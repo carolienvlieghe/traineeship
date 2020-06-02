@@ -19,12 +19,11 @@ library(umap)
 
 ##################################################################################
 ### Assign in & output ###
-input.folder <- "D:/school/Stage officieel/csv_out/"
 output.folder <- "D:/school/Stage officieel/tsne_out/"
 dir.create(path=output.folder)
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S")
-file.name.fcs <- list.files(path = input.folder, pattern = "\\.fcs$", full.names = TRUE)
+file.name.fcs <- choose.files(multi = TRUE, caption = "Select fcs files")
 for (fcs in file.name.fcs) {
   file.name.base <- basename(fcs)
   base <- substr(file.name.base, start = 19, stop = nchar(file.name.base)-4)
@@ -44,7 +43,7 @@ for (fcs in file.name.fcs) {
   # transformed <- transform(ff, lgcl)
   
   # Better transformation with??:
-  transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform(w = 1, t = 1048576)))
+  transformed <- transform(ff,transformList(colnames(ff)[6:15],logicleTransform(w = 0.9, t = 1048576)))
   
   # normalize function
   # normalize with median of best negative population: the fcs file is a subpopulation were all cells were CD5 negative!
@@ -90,7 +89,7 @@ for (fcs in file.name.fcs) {
   
   # Assign parameters to use for tSNE, flowSOM and umap
   # Which parameters to use: don't use parameters used in preprocessing
-  parameters.to.use <- c(8:11, 14:15)
+  parameters.to.use <- c(7:11, 14:15)
   
   ### Check transformation with individual density plots
   
@@ -134,16 +133,17 @@ for (fcs in file.name.fcs) {
   ###############
   ### The columns used for the flowSOM have to be displayed as logicle 
   flowsom.res <- FlowSOM(ff.scaled,
-                         scale=FALSE,
+                         scale = FALSE,
                          colsToUse = parameters.to.use,
-                         xdim = 11, # default is 10: 10x10 = 100 clusters
-                         ydim = 11, # default is 10
+                         xdim = 10, # default is 10: 10x10 = 100 clusters
+                         ydim = 10, # default is 10
                          scaled.center = FALSE,
                          scaled.scale = FALSE,
-                         nClus = 10,
-                         rlen = 10,
+                         nClus = 50, 
+                         rlen = 10, # number of iterations
                          compensate = FALSE,
-                         transform = FALSE)
+                         transform = FALSE,
+                         importance = c(11,8)) # give some parameters more importance
   
   fSOM <- flowsom.res[[1]]
   # change names for legend

@@ -1,6 +1,9 @@
-############################
+##################################
 ### Simple merge of flowframes ###
-############################
+##################################
+
+# The script concatenates the expression matrices
+
 ### Clear Rstudio windows ###
 rm(list=ls()) # removes all object from Rstudio environment window
 cat("\014") # clears Rstudio console window
@@ -8,15 +11,18 @@ if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 
 # Load packages
 library(flowCore)
+library(rstudioapi)
 
-# Assign in- & output
-input.folder <- "D:/path_to_inputfolder/"
-output.folder <- "D:/path_to_outputfolder/"
-dir.create(path = output.folder)
+# Select files to merge, use while loop to be able to select files from different directories
+input.folder <- choose.files(multi = TRUE, caption = "Select fcs files to merge")
+answer <- winDialog(type = "yesno", "Do you want to select another file?")
+while (answer=="YES") {
+  input.folder <- append(input.folder, choose.files(multi = TRUE, caption = "Select fcs files to merge"))
+  answer <- winDialog(type = "yesno", "Do you want to select another file?")
+}
 
 # read set of fcs files to process
-set <- read.flowSet(files = NULL, path = input.folder)
-# channel.names <- grep('FL', colnames(set), value = TRUE)
+set <- read.flowSet(files = input.folder)
 nb.ff <- length(set)
 
 for (ff in 1:nb.ff) {
@@ -28,6 +34,10 @@ for (ff in 1:nb.ff) {
   }
 } 
 
-# save merged matrix in random ff of set and write FCS --> to keep phenodata
+# save merged matrix in random ff off set (easy way to keep Annotated Dataframe) and write FCS
 exprs(set[[1]]) <- new.ff
-write.FCS(x = set[[1]], filename = paste0(output.folder, "15_NBM.fcs"))
+# ask for filename
+file.name <- paste0(selectFile(caption = "Save file as ...", 
+                               label = "Save", existing = FALSE)
+                    , ".fcs")
+write.FCS(x = set[[1]], filename = file.name)
