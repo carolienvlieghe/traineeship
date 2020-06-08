@@ -52,10 +52,11 @@ parameters.to.use <- c(7:11,14:15)
 # Assign parameters for flowSOM
 x.dim <- 11
 y.dim <- 11
+nb.metacluster <- 5
 dispersion.coef <- 50  #default=30 how big you want the nodes
 channel.names <- ff.trf@parameters@data$desc # for legend plots
 
-set.seed(1)
+set.seed(1234)
 
 fSOM.res <- FlowSOM(ff.trf, 
                     compensate = FALSE,
@@ -66,7 +67,7 @@ fSOM.res <- FlowSOM(ff.trf,
                     colsToUse = parameters.to.use,
                     xdim = x.dim,
                     ydim = y.dim,
-                    nClus = 100, # use maxMeta?
+                    nClus = nb.metacluster <- 5, # use maxMeta?
                     rlen = 10)
 fSOM <- fSOM.res[[1]]
 # Save coördinates of nodes and add it to flowframe
@@ -98,13 +99,13 @@ for (i in 1:nb.clusters) {
 
 matrix.node.fSOM <- cbind(node.fSOM.x, node.fSOM.y)
 matrix.node.fSOM.scaled <- igraph::norm_coords(matrix.node.fSOM, xmin=10, xmax=1014, ymin=10, ymax=1014)
-colnames(matrix.node.fSOM.scaled) <- c("FlowSOM.1","FlowSOM.2")
+colnames(matrix.node.fSOM.scaled) <- c("FlowSOM.X","FlowSOM.Y")
 
 ff.fsom <- cbind2 (ff, matrix.node.fSOM.scaled)
 
 # get metaclustering data for fcs file
 metacluster <- fSOM.res [[2]]
-metacluster <- metaClustering_consensus(fSOM$map$codes, k = 5)
+metacluster <- metaClustering_consensus(fSOM$map$codes, k = nb.metacluster <- 5)
 data.metacluster <- metacluster[fSOM$map$mapping[,1]] # = metaClustering_perCell <- metaClustering[fSOM$map$mapping[,1]]
 data.metacluster <- as.matrix(data.metacluster)
 colnames(data.metacluster) <- "Metaclustering Consensus"

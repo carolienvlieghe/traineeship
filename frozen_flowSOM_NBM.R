@@ -18,7 +18,7 @@ library(FlowSOM)
 # Start #
 #########
 # read FCS file, store it as flowframe ff
-ff <- read.FCS(filename = choose.files(caption = "Select merged NBM file", multi = FALSE))
+ff <- read.FCS(filename = choose.files(caption = "Select reference NBM file", multi = FALSE))
 
 # Assign outputfolder
 output.folder <- choose.dir(caption = "Select folder to store fcs & pdf of reference MST's")
@@ -60,6 +60,7 @@ parameters.to.use <- c(7:11,14:15)
 x.dim <- 11
 y.dim <- 11
 dispersion.coef <- 50  #default=30 how big you want the nodes
+nb.metacluster <- 5
 channel.names <- ff.trf@parameters@data$desc # for legend plots
 
 # Make 24 MST's of NBM, analyse them and chose the best one as FROZEN flowSOM for further analysis with samples
@@ -79,8 +80,8 @@ for (seed in 1:24) {
                   ydim = y.dim,
                   # fSOM.res$metaclustering: nClus = NULL, maxMeta --> variable number of levels
                   # If nClus is set, number of levels = nClus
-                  nClus = 10,
-                  maxMeta = 10, 
+                  nClus = nb.metacluster,
+                  # maxMeta = 10, # maximum number of metaclusters to try out, not used if nClus is set
                   rlen = 10)
   # Save Rdata file
   save(fSOM.res, file = paste0(output.file, ".Rdata"))
@@ -114,13 +115,13 @@ for (seed in 1:24) {
   
   matrix.node.fSOM <- cbind(node.fSOM.x, node.fSOM.y)
   matrix.node.fSOM.scaled <- igraph::norm_coords(matrix.node.fSOM, xmin=10, xmax=1014, ymin=10, ymax=1014)
-  colnames(matrix.node.fSOM.scaled) <- c("FlowSOM.1","FlowSOM.2")
+  colnames(matrix.node.fSOM.scaled) <- c("FlowSOM.X","FlowSOM.Y")
   
   ff.fsom <- cbind2 (ff, matrix.node.fSOM.scaled)
   
   # get metaclustering data for fcs file
   metacluster <- fSOM.res [[2]]
-  metacluster <- metaClustering_consensus(fSOM$map$codes, k = 5)
+  metacluster <- metaClustering_consensus(fSOM$map$codes, k = nb.metacluster)
   data.metacluster <- metacluster[fSOM$map$mapping[,1]] # = metaClustering_perCell <- metaClustering[fSOM$map$mapping[,1]]
   data.metacluster <- as.matrix(data.metacluster)
   colnames(data.metacluster) <- "Metaclustering Consensus"

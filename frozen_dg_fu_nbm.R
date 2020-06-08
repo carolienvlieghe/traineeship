@@ -247,7 +247,7 @@ for (m in 1:3) {
   data.metacluster<- metacluster[fSOM.list[[m]]$map$mapping[,1]]
   
   ff.nodes[[m]] <- cbind(node.fSOM.x.scaled, node.fSOM.y.scaled, data.metacluster)
-  colnames(ff.nodes[[m]]) <- c("FROZEN flowSOM X", "Frozen flowSOM Y", "Metaclustering Consensus")
+  colnames(ff.nodes[[m]]) <- c("Frozen flowSOM.X", "Frozen flowSOM.Y", "Metaclustering Consensus")
   
   ff.new <- ff[indices.list[[m]],]
   ff.new <- fr_append_cols(ff.new, ff.nodes[[m]])
@@ -283,8 +283,8 @@ for (i in c((ncol(ff)+1):ncol(ff.frozen))){
     ff.frozen@parameters@data$minRange[i] <- 0
     ff.frozen@description[range.kw] <- ff.frozen@parameters@data$range[i]
   } else {
-    ff.frozen@parameters@data$range[i] <- 1100
-    ff.frozen@parameters@data$maxRange[i] <- 1100
+    ff.frozen@parameters@data$range[i] <- 2^20
+    ff.frozen@parameters@data$maxRange[i] <- 2^20
     ff.frozen@parameters@data$minRange[i] <- 0
     ff.frozen@description[range.kw] <- ff.frozen@parameters@data$range[i]
   }
