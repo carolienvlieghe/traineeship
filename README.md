@@ -1,8 +1,6 @@
 # Electronic traineeship notebook 
 ## General info repository
-This repository contains different scripts used for the analysis of flow cytometry data.
-The .Rtemplate files were provided by Beckman Coulter and can be used in the Rplugin in Kaluza. They can be viewed in a text editor like visual studio code, notepad++, ... 
-The templates are used as a starting point to write scripts for a comparable analysis in Rstudio (independent of the plugin and Kaluza).
+This repository contains different scripts used for automated analysis of flow cytometry data.
 ## Pipeline
 ### [csv2fcs](/csv2fcs.R)
 This script converts csv files to fcs files (flow cytometry standard).
@@ -98,5 +96,7 @@ Two files are created:
 - A pdf file containing the MST of the diagnosis sample, the follow up sample and merged NBM sample.
 - A fcs file containing 3 additional parameters: flowSOM.X, flowSOM.Y and metaclustering consensus (see above for more explanation).
 
+For the post analysis in Kaluza, it is easiest to make a histogram with the tag parameter to distinguish between the different datasets (see above) and a second histogram with the metaclustering consensus to identify the cell subsets.
+
 ### [tSNE_flowSOM_umap](/tSNE_flowSOM_umap.R) & [tSNE_flowSOM](/tSNE_flowSOM.R)
-These script are based on the original template provided by Beckman Coulter. The first script runs tSNE, flowSOM & umap simultaneously on an fcs file, the second one only runs tSNE & flowSOM. Note that the tSNE and umap analysis have a remakably longer run time.
+These script are based on template scripts provided by Beckman Coulter. The first script runs tSNE, flowSOM & umap simultaneously on an fcs file, the second one only runs tSNE & flowSOM. Note that the tSNE and umap analysis have a remakably longer run time.
