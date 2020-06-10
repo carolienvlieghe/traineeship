@@ -19,7 +19,7 @@ library(umap)
 
 ##################################################################################
 ### Assign in & output ###
-output.folder <- "D:/school/Stage officieel/tsne_out/"
+output.folder <- "D:/path/"
 dir.create(path=output.folder)
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S")
