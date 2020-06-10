@@ -21,11 +21,11 @@ library(rvest)
 ### create output folder for all newly created fcs files ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M%S-")
-output.folder <- "D:/school/Stage officieel/Extraction_output/"
+output.folder <- "D:/path/"
 dir.create(path = output.folder)
 
 ### assign input folder with .analysis files, zip files ###
-input.folder <- "D:/school/Stage officieel/Extraction_input/"
+input.folder <- "D:/path/"
 # list the . analysis files in the inputfolder 
 fcs.path <- list.files(path= input.folder, pattern = "\\.analysis$", full.names=TRUE)
 nb.files <- length(fcs.path) # how many .analysis files are in the input folder?
