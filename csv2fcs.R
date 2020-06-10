@@ -1,5 +1,6 @@
-################ Conversion script: CSV to FCS ################
-###############################################################
+#####################################
+### Conversion script: CSV to FCS ###
+#####################################
 # Save events from population of interest as CSV file in Kaluza
 # Copy csv to inputfolder
 
@@ -11,7 +12,7 @@ if(!is.null(dev.list())) dev.off() # clears the Rstudio plot window
 ### Load libraries ###
 library(flowCore)
 
-### Assign in & output folders ###
+### Assign in- & output folders ###
 date <- Sys.time()
 date.format <- format(date, format= "%Y%m%d-%H%M")
 # Select the csv files you want to convert in the dialog window and list all files in csv.path variable
@@ -31,11 +32,9 @@ for (csv in csv.path) {
   ### Read the files ###
   # Read the csv file
   csv.file <- read.csv(csv) # class = dataframe
-  # Kaluza scales the values to 1024 before displaying
-  # MFI/1024 corresponds with original MFI in pre-analysis
 
   ### Make flowFrame from csv ###
-  # Replace . with whitespace in colnames of scatter parameters
+  # Replace . with whitespace in colnames of scatter parameters to correspond with names in Kaluza
   col <- c()
   for (i in c(1:5)) {
     new <- sub("\\.", " ", colnames(csv.file[i]))
@@ -49,7 +48,7 @@ for (csv in csv.path) {
   # turn matrix into flowFrame
   ff <- flowFrame(csvmatrix)
   
-  # number of variables
+  # number of variables & fluorochromes
   nb.var <- c(1:length(parameters(ff)$name))
   nb.fl <- grep("CD", colnames(ff))
   
@@ -61,13 +60,13 @@ for (csv in csv.path) {
     a <- a + 1
   } 
 
-  # Resolution maximum Area, height and width
+  # Resolution maximum Area, height and width specific for Navios
   adc.resolution.Area <- 20
   adc.resolution.Height <- 18
   adc.resolution.TIME <- 20
   adc.resolution.Width <- 10
   
-  # Adjust range in Annotated Dataframe
+  # Adjust range in Annotated Dataframe --> imported for visualization in Kaluza
   for (i in nb.var) {
     if ((ff@parameters@data$name[i]=="FS H") | (ff@parameters@data$name[i]=="FS-H") |
         (ff@parameters@data$name[i]=="FSC-H") | (ff@parameters@data$name[i]=="FSC H") |

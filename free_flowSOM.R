@@ -1,4 +1,8 @@
-### Perform free flowSOM on fcs file ###
+####################
+### free flowSOM ###
+####################
+
+# Perform a free flowSOM 
 
 ### Clear Rstudio windows ###
 rm(list=ls()) # removes all object from Rstudio environment window
@@ -22,6 +26,7 @@ adf <- parameters(ff)
 # Logicle transformation
 # get index for channels to transform (FL)
 FL.index <- grep("FL", colnames(ff))
+# when transformation seems incorrect, you can try to adjust the 'w' argument in the function
 ff.trf <- transform(ff,transformList(colnames(ff)[FL.index],logicleTransform(w = 0.9, t = 1048576)))
 
 ### Density plot to check transformation
@@ -68,26 +73,27 @@ fSOM.res <- FlowSOM(ff.trf,
                     xdim = x.dim,
                     ydim = y.dim,
                     nClus = nb.metacluster <- 5, # use maxMeta?
-                    rlen = 10)
+                    rlen = 10) # number of iterations
+# store flowSOM result without metaclustering in fSOM variable
 fSOM <- fSOM.res[[1]]
 # Save coördinates of nodes and add it to flowframe
-nodes.mapping <- fSOM$map$mapping[,1] # value between 1 - 100 (--> which node does the event belong to)
+nodes.mapping <- fSOM$map$mapping[,1] # value between 1 - max nb of nodes (--> which node does the event belong to)
 nb.cells <- nrow(ff.trf)
 node.fSOM <- vector()
 node.fSOM.x <- NULL
 node.fSOM.y <- NULL
-layout.fcs <- fSOM$MST$l # x y coordinates per node??
+layout.fcs <- fSOM$MST$l # x y coordinates per node
 # plot(layout.fcs, main= "Frozen flowSOM")
-mapping.fcs <- fSOM$map$mapping[,1]
+mapping.fcs <- fSOM$map$mapping[,1] # which node does an event belong to: node number per event
 vertex.size.fcs <- fSOM$MST$size # size of every node
 nb.clusters <- (fSOM$map$xdim) * (fSOM$map$ydim)
 nb.nodes <- nb.clusters
 nb.points.per.line <- nb.cells/nb.nodes
 for (i in 1:nb.clusters) {
-  tempo <- mapping.fcs[mapping.fcs==i]
-  tempo_indices <- which(mapping.fcs==i)
+  tempo <- mapping.fcs[mapping.fcs==i] # list with node numbers repeated the number of times it is present in the mapping
+  tempo_indices <- which(mapping.fcs==i) # indices of the events that belong to a certain node number
   
-  random.nb <- runif(n=tempo,min = 0, max = 1 )
+  random.nb <- runif(n=tempo,min = 0, max = 1 ) # creates random numbers between 0 and 1 for every event in with certain node number
   
   random.radius <-  random.nb * vertex.size.fcs[i]/2
   random.angle <- runif(n=length(tempo),min = 0, max = 2*pi)
@@ -112,7 +118,7 @@ colnames(data.metacluster) <- "Metaclustering Consensus"
 
 ff.meta <-  cbind2(ff.fsom, data.metacluster)
 
-# Add range keyword to description slot and ranges to annotated datafram
+# Add range keyword to description slot and ranges to annotated dataframe
 for (i in c((ncol(ff)+1):ncol(ff.meta))){
   # adjust rowname of adf
   r.name <- paste0("$P",i)

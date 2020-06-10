@@ -1,6 +1,6 @@
-############################
-######## TAG script ########
-############################
+####################################
+######## TAG & merge script ########
+####################################
 
 # Assign a TAG to each dataset to identify the sample type in Kaluza
 # 250 = Diagnosis
@@ -20,10 +20,12 @@ library(rstudioapi)
 sample.type <- c("NBM","FU","Dg")
 fcs.file <- list()
 fcs.list <- list()
+# Loop over the sample types to select the corresponding fcs files through a dialog window
 for (i in sample.type) {
   fcs.file <- list(choose.files(multi = FALSE, caption = paste("Select", i, "file", sep = " ")))
   names(fcs.file) <- c(i)
   if (fcs.file=="character(0)") {
+    # when no file is uploaded for a certain sample type (cancel)
     # nothing has to happen, proceed to next item in loop
   } else {
     fcs.list <- append(fcs.list, fcs.file)
@@ -50,7 +52,7 @@ for (fcs in 1:nb.fcs){
   colnames(TAG.fcs) <- "TAG"
   # Make new column in the flowframe containing the tag to identify the sample type
   ff.new <- fr_append_cols(ff, TAG.fcs)
-  # Add range keyword & add range info to Annotated dataframe
+  # Add range keyword & add range info to Annotated dataframe --> important for visualization in Kaluza
   range.kw <- paste0("$P",ncol(ff.new),"R")
   ff.new@description[range.kw] <- '1024'
   ff.new@parameters@data$range[ncol(ff.new)] <- '1024'
@@ -68,12 +70,12 @@ for (fcs in 1:nb.fcs){
   }
 }
 
-# Replace expression matrix with updated matrix containing tag
+# Replace expression matrix of the flowframe with updated matrix containing the tags
 # Easy way to maintain phenodata of original files:
 colnames(ff.new) <- column.names
 exprs(ff.new) <- merged.ff
 
-# Save the file in an interactive way
+# Save the file in an interactive way --> dialog window
 file.name <- file.name <- paste0(selectFile(caption = "Save file as ...", 
                                             label = "Save", existing = FALSE), ".fcs")
 write.FCS(ff.new, file.name)

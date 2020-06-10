@@ -1,4 +1,6 @@
+######################
 ### Frozen flowSOM ###
+######################
 
 # Apply this script on reference merged NBM sample
 # Analyse all generated MSTs and chose the best one as FROZEN flowSOM MST
@@ -82,11 +84,11 @@ for (seed in 1:24) {
                   # If nClus is set, number of levels = nClus
                   nClus = nb.metacluster,
                   # maxMeta = 10, # maximum number of metaclusters to try out, not used if nClus is set
-                  rlen = 10)
+                  rlen = 10 # number of iterations)
   # Save Rdata file
   save(fSOM.res, file = paste0(output.file, ".Rdata"))
   fSOM <- fSOM.res[[1]]
-  # Save coördinates of nodes and add it to flowframe
+  # Save coordinates of nodes and add it to flowframe
   nodes.mapping <- fSOM$map$mapping[,1] # value between 1 - 100 (--> which node does the event belong to)
   nb.cells <- nrow(ff.trf)
   node.fSOM <- vector()

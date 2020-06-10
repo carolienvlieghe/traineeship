@@ -2,6 +2,8 @@
 ###Frozen flowSOM with tagged files ###
 #######################################
 
+# Perform flowSOM on tagged files (Dg, FU, NBM) with the frozen representation of NBM sample
+
 ### Clear Rstudio windows ###
 rm(list=ls()) # removes all object from Rstudio environment window
 cat("\014") # clears Rstudio console window
@@ -97,9 +99,9 @@ fSOM.fixed.NBM <- fSOM.res[[1]]
 # Plot The MST with node numbers
 # PlotNumbers(fSOM.fixed.NBM, view = "MST")
 
-# Built the MST tree from the flowSOM result of the reference fSOM and get the coördinates (--> can be added to flowFrame)
+# Built the MST tree from the flowSOM result of the reference fSOM and get the coï¿½rdinates (--> can be added to flowFrame)
 
-# vectors to save coördinates
+# vectors to save coordinates
 node.fSOM <- vector()
 node.fSOM.x <- NULL
 node.fSOM.y <- NULL
@@ -363,7 +365,7 @@ dev.off()
 #                     nClus = 100,
 #                     rlen = 10)
 # fSOM <- fSOM.res.free[[1]]
-# # Save coördinates of nodes and add it to flowframe
+# # Save coï¿½rdinates of nodes and add it to flowframe
 # nodes.mapping <- fSOM$map$mapping[,1] # value between 1 - 100 (--> which node does the event belong to)
 # nb.cells <- nrow(ff.trf)
 # node.fSOM <- vector()
