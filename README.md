@@ -1,6 +1,8 @@
 # Electronic traineeship notebook 
 ## General info repository
-This repository contains different scripts used for automated analysis of flow cytometry data.
+This repository contains different R scripts used for automated analysis of flow cytometry data.
+
+Bellow you can find the guidelines on why and how to use the different scripts. More information on the code itself is given through the comment lines within the scripts.
 ## Pipeline
 ### [csv2fcs](/csv2fcs.R)
 This script converts csv files to fcs files (flow cytometry standard).
