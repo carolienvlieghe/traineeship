@@ -1,8 +1,6 @@
 # Electronic traineeship notebook 
 ## General info repository
-This repository contains different scripts used for the analysis of flow cytometry data.
-The .Rtemplate files were provided by Beckman Coulter and can be used in the Rplugin in Kaluza. They can be viewed in a text editor like visual studio code, notepad++, ... 
-The templates are used as a starting point to write scripts for a comparable analysis in Rstudio (independent of the plugin and Kaluza).
+This repository contains different scripts used for automated analysis of flow cytometry data.
 ## Pipeline
 ### [csv2fcs](/csv2fcs.R)
 This script converts csv files to fcs files (flow cytometry standard).
