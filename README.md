@@ -4,7 +4,7 @@ This repository contains different R scripts used for automated analysis of flow
 
 Bellow you can find the guidelines on why and how to use the different scripts. More information on the code itself is given through the comment lines within the scripts.
 ## Pipeline
-### [csv2fcs](/csv2fcs.R)
+### [csv2fcs](https://github.com/carolienvlieghe/traineeship/blob/master/csv2fcs.R)
 This script converts csv files to fcs files (flow cytometry standard).
 
 The input data for the experiment is a csv file created in Kaluza: after pre-analysis (compensation, excluding debris, etc.) use the 'Export compensated event data' option in Kaluza to save the (compensated!) events of interest in a csv file. For this experiment we will export the events of a purified CD19 positive cell population (B-lineage).
@@ -15,7 +15,7 @@ In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the enti
 
 The newly created fcs files are to be found in your folder of choice.
 
-### [normalization](/normalization.R)
+### [normalization](https://github.com/carolienvlieghe/traineeship/blob/master/normalization.R)
 This script normalizes the data from the normal bone marrow samples (NBM) before we merge them into one reference NBM sample. Note that this script was written specifically for the B-ALL tube. To apply this to other tubes, the reference values of the negative population for each marker (reference.neg.pop.mode) should be adjusted.
 
 In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the entire script:
@@ -29,7 +29,7 @@ After the logicle transformation, per marker a plot window opens where you can s
 
 After going through these steps, the normalized fcs files are to be found in your folder of choice.
 
-### [FCSmerge](/FCSmerge.R)
+### [FCSmerge](https://github.com/carolienvlieghe/traineeship/blob/master/FCSmerge.R)
 This script merges fcs files into one fcs file. It can be used e.g. to merge the normalized normal bone marrow samples into one reference NBM file.
 
 In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the entire script:
@@ -37,7 +37,7 @@ In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the enti
 - A pop up will appear, asking you if you want to select another file (this way you are able to select files from multiple folders). If you choose yes, the previous dialog window will open and you can select more fcs files. If you choose no, the script proceeds to the next step.
 - A dialog window opens to save your merged fcs file: select a folder, name the file and click the 'Save' button.
 
-### [FCS_tag_merge](/FCS_tag_merge.R)
+### [FCS_tag_merge](https://github.com/carolienvlieghe/traineeship/blob/master/FCS_tag_merge.R)
 This script was created to be able to give fcs files a tag and then merge them together into one fcs file. The tag allows you to identify each dataset in post analysis. The tags in this script are numeric, the value corresponds with a certain sample type:
 - Diagnosis (Dg) = 250
 - Follow up (FU) = 500
@@ -51,7 +51,7 @@ In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the enti
 
 The easiest way to identify the different datasets in Kaluza is to add a histogram plot on the parameter 'TAG', there you can auto-gate the 3 different datasets and name them accordingly.
 
-### [frozen_flowSOM_NBM](/frozen_flowSOM_NBM.R)
+### [frozen_flowSOM_NBM](https://github.com/carolienvlieghe/traineeship/blob/master/frozen_flowSOM_NBM.R)
 This script creates 24 different flowSOM representations of a reference NBM. These representation are revised and the best representation is 'frozen' for analysis of diagnostic and follow up samples.
 
 In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the entire script:
@@ -71,7 +71,7 @@ A few important variables in the script used as arguments for flowSOM parameters
 - x.dim & y.dim: these values refer to the grid size, e.g. setting both x.dim and y.dim is set to 11, results in a grid containing 121 nodes (11 rows and 11 columns). Decreasing these values will result in a smaller grid, hence a more simplified MST but could cluster rare population together with other another population that is actually different. Where increasing these values will purify the population more but could separate cells that are similar into different clusters. Note that it is desired to overcluster a little bit, this can be compensated by the metaclustering value.
 - nb.metacluster: a number representing the expected number of metaclusters often based on prior knowledge.
 
-### [frozen_dg_fu_nbm](/frozen_dg_fu_nbm.R)
+### [frozen_dg_fu_nbm](https://github.com/carolienvlieghe/traineeship/blob/master/frozen_dg_fu_nbm.R)
 This script plots new data onto the frozen flowSOM. Note that it is advisable to run a 'free' flowSOM as well, since adding new data to an existing flowSOM object will map all events to an existing cluster. Previous to running this script, the 'tag & merge fcs files' is used to merge datasets from diagnostic and follow up samples.
 
 In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the entire script:
@@ -86,7 +86,7 @@ Two files are created:
 
 For the post analysis in Kaluza, it is easiest to make a histogram with the tag parameter to distinguish between the different datasets (see above) and a second histogram with the metaclustering consensus to identify the cell subsets.
 
-### [free_flowSOM](/free_flowSOM.R)
+### [free_flowSOM](https://github.com/carolienvlieghe/traineeship/blob/master/free_flowSOM.R)
 This script runs a 'free' flowSOM on the data and is used in addition to the frozen flowSOM script.
 
 In Rstudio press the 'Source' button or press 'Ctrl+Shift+Enter' to run the entire script:
@@ -100,5 +100,5 @@ Two files are created:
 
 For the post analysis in Kaluza, it is easiest to make a histogram with the tag parameter to distinguish between the different datasets (see above) and a second histogram with the metaclustering consensus to identify the cell subsets.
 
-### [tSNE_flowSOM_umap](/tSNE_flowSOM_umap.R) & [tSNE_flowSOM](/tSNE_flowSOM.R)
+### [tSNE_flowSOM_umap](https://github.com/carolienvlieghe/traineeship/blob/master/tSNE_flowSOM_umap.R) & [tSNE_flowSOM](https://github.com/carolienvlieghe/traineeship/blob/master/tSNE_flowSOM.R)
 These script are based on template scripts provided by Beckman Coulter. The first script runs tSNE, flowSOM & umap simultaneously on an fcs file, the second one only runs tSNE & flowSOM. Note that the tSNE and umap analysis have a remakably longer run time.
